@@ -1,0 +1,291 @@
+[
+  {
+    "name": "latin-before-pronunciation",
+    "steps": [
+      {
+        "text": "s",
+        "preedit": "s"
+      },
+      {
+        "text": "u",
+        "preedit": "su"
+      },
+      {
+        "text": "3",
+        "preedit": "你"
+      },
+      {
+        "text": "c",
+        "preedit": "你c"
+      },
+      {
+        "text": "l",
+        "preedit": "你cl"
+      },
+      {
+        "text": "3",
+        "preedit": "你好"
+      },
+      {
+        "key": "enter",
+        "document": "你好"
+      }
+    ]
+  },
+  {
+    "name": "literal-period",
+    "steps": [
+      {
+        "text": ".",
+        "preedit": "."
+      },
+      {
+        "key": "enter",
+        "document": "."
+      }
+    ]
+  },
+  {
+    "name": "period-after-chinese",
+    "steps": [
+      {
+        "text": "su3cl3.",
+        "preedit": "你好."
+      },
+      {
+        "key": "enter",
+        "document": "你好."
+      }
+    ]
+  },
+  {
+    "name": "period-in-pronunciation",
+    "steps": [
+      {
+        "text": "g.",
+        "preedit": "g."
+      },
+      {
+        "text": "3",
+        "preedit": "手"
+      },
+      {
+        "key": "enter",
+        "document": "手"
+      }
+    ]
+  },
+  {
+    "name": "unfinished-tail",
+    "steps": [
+      {
+        "text": "su3cl",
+        "preedit": "你cl"
+      },
+      {
+        "key": "enter",
+        "document": "你cl"
+      }
+    ]
+  },
+  {
+    "name": "contiguous-mixed",
+    "steps": [
+      {
+        "text": "hellosu3cl3world",
+        "preedit": "hello你好world"
+      },
+      {
+        "key": "enter",
+        "document": "hello你好world"
+      }
+    ]
+  },
+  {
+    "name": "english-punctuation",
+    "steps": [
+      {
+        "text": "hello, world! ",
+        "document": "hello, world! "
+      }
+    ]
+  },
+  {
+    "name": "first-tone-space",
+    "steps": [
+      {
+        "text": "d9 vup ",
+        "preedit": "開心"
+      },
+      {
+        "key": "enter",
+        "document": "開心"
+      }
+    ]
+  },
+  {
+    "name": "character-backspace",
+    "steps": [
+      {
+        "text": "su3cl3",
+        "preedit": "你好"
+      },
+      {
+        "key": "backspace",
+        "preedit": "你"
+      },
+      {
+        "key": "enter",
+        "document": "你"
+      }
+    ]
+  },
+  {
+    "name": "partial-key-backspace",
+    "steps": [
+      {
+        "text": "su",
+        "preedit": "su"
+      },
+      {
+        "key": "backspace",
+        "preedit": "s"
+      },
+      {
+        "key": "enter",
+        "document": "s"
+      }
+    ]
+  },
+  {
+    "name": "edit-neighbour",
+    "steps": [
+      {
+        "text": "su3cl3",
+        "preedit": "你好"
+      },
+      {
+        "key": "left"
+      },
+      {
+        "key": "backspace",
+        "preedit": "好"
+      },
+      {
+        "key": "enter",
+        "document": "好"
+      }
+    ]
+  },
+  {
+    "name": "down-only-candidates",
+    "steps": [
+      {
+        "text": "su3cl3",
+        "selecting": false
+      },
+      {
+        "key": "down",
+        "selecting": true
+      },
+      {
+        "key": "escape",
+        "selecting": false,
+        "preedit": "你好"
+      },
+      {
+        "key": "enter",
+        "document": "你好"
+      }
+    ]
+  },
+  {
+    "name": "raw-restoration",
+    "steps": [
+      {
+        "text": "hellosu3cl3",
+        "preedit": "hello你好"
+      },
+      {
+        "key": "commit_raw",
+        "document": "hellosu3cl3"
+      }
+    ]
+  },
+  {
+    "name": "literal-identifier",
+    "steps": [
+      {
+        "text": "abc123",
+        "preedit": "abc123"
+      },
+      {
+        "key": "enter",
+        "document": "abc123"
+      }
+    ]
+  },
+  {
+    "name": "resultative",
+    "steps": [
+      {
+        "text": "1j3fm06j06jp6y4",
+        "preedit": "補全完文字"
+      },
+      {
+        "key": "enter",
+        "document": "補全完文字"
+      }
+    ]
+  },
+  {
+    "name": "dataset",
+    "steps": [
+      {
+        "text": "y xul4ru6",
+        "preedit": "資料集"
+      },
+      {
+        "key": "enter",
+        "document": "資料集"
+      }
+    ]
+  },
+  {
+    "name": "literal-url",
+    "steps": [
+      {
+        "text": "https://example.com"
+      },
+      {
+        "key": "enter",
+        "document": "https://example.com"
+      }
+    ]
+  },
+  {
+    "name": "literal-file",
+    "steps": [
+      {
+        "text": "main.rs"
+      },
+      {
+        "key": "enter",
+        "document": "main.rs"
+      }
+    ]
+  },
+  {
+    "name": "literal-version",
+    "steps": [
+      {
+        "text": "v1.2.3",
+        "preedit": "v1.2.3"
+      },
+      {
+        "key": "enter",
+        "document": "v1.2.3"
+      }
+    ]
+  }
+]

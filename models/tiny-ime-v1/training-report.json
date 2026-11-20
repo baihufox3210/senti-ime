@@ -1,0 +1,220 @@
+{
+  "architecture": "context4 + idf-topic8 embedding24 -> tanh64 -> sampled-softmax word head + supervised POS head",
+  "seed": 4129,
+  "epochs": 14,
+  "examples_per_epoch": 220000,
+  "vocabulary": 8756,
+  "examples": {
+    "train": 1056708,
+    "dev": 84770,
+    "test": 80875
+  },
+  "validation": {
+    "sampled_accuracy": 0.5005,
+    "sampled_nll": 1.592635353088379,
+    "unigram_sampled_accuracy": 0.11633333333333333,
+    "pos_accuracy": 0.4808700209643606
+  },
+  "test": {
+    "sampled_accuracy": 0.5221666666666667,
+    "sampled_nll": 1.5440178883870443,
+    "unigram_sampled_accuracy": 0.11416666666666667,
+    "pos_accuracy": 0.47102564102564104
+  },
+  "history": [
+    {
+      "sampled_accuracy": 0.4045,
+      "sampled_nll": 1.9464040044148763,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.44758909853249473,
+      "epoch": 1,
+      "seconds": 10.9
+    },
+    {
+      "sampled_accuracy": 0.44483333333333336,
+      "sampled_nll": 1.8034911041259765,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.4591194968553459,
+      "epoch": 2,
+      "seconds": 21.8
+    },
+    {
+      "sampled_accuracy": 0.4628333333333333,
+      "sampled_nll": 1.7451431070963541,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.46645702306079667,
+      "epoch": 3,
+      "seconds": 32.7
+    },
+    {
+      "sampled_accuracy": 0.4728333333333333,
+      "sampled_nll": 1.709277333577474,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.4758909853249476,
+      "epoch": 4,
+      "seconds": 44.0
+    },
+    {
+      "sampled_accuracy": 0.48433333333333334,
+      "sampled_nll": 1.6717272440592448,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.470125786163522,
+      "epoch": 5,
+      "seconds": 55.2
+    },
+    {
+      "sampled_accuracy": 0.4835,
+      "sampled_nll": 1.654526138305664,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.4740566037735849,
+      "epoch": 6,
+      "seconds": 66.2
+    },
+    {
+      "sampled_accuracy": 0.48783333333333334,
+      "sampled_nll": 1.6388922068277996,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.4811320754716981,
+      "epoch": 7,
+      "seconds": 77.5
+    },
+    {
+      "sampled_accuracy": 0.49316666666666664,
+      "sampled_nll": 1.6302330322265626,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.4798218029350105,
+      "epoch": 8,
+      "seconds": 88.2
+    },
+    {
+      "sampled_accuracy": 0.49483333333333335,
+      "sampled_nll": 1.6210392252604167,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.48139412997903563,
+      "epoch": 9,
+      "seconds": 99.3
+    },
+    {
+      "sampled_accuracy": 0.4995,
+      "sampled_nll": 1.6123176778157553,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.4790356394129979,
+      "epoch": 10,
+      "seconds": 111.9
+    },
+    {
+      "sampled_accuracy": 0.5006666666666667,
+      "sampled_nll": 1.6030327504475912,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.47929769392033544,
+      "epoch": 11,
+      "seconds": 122.7
+    },
+    {
+      "sampled_accuracy": 0.5018333333333334,
+      "sampled_nll": 1.599601338704427,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.48139412997903563,
+      "epoch": 12,
+      "seconds": 133.4
+    },
+    {
+      "sampled_accuracy": 0.5016666666666667,
+      "sampled_nll": 1.597708521525065,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.4837526205450734,
+      "epoch": 13,
+      "seconds": 144.0
+    },
+    {
+      "sampled_accuracy": 0.5005,
+      "sampled_nll": 1.592635353088379,
+      "unigram_sampled_accuracy": 0.11633333333333333,
+      "pos_accuracy": 0.4808700209643606,
+      "epoch": 14,
+      "seconds": 154.7
+    }
+  ],
+  "sources": [
+    {
+      "file": "UD_English-EWT-en_ewt-ud-train.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.15/en_ewt-ud-train.conllu",
+      "sha256": "a049fc40822e21593ff89ccd0a4b081443f09fae71b61f813c624aa598f6c566",
+      "bytes": 14190227
+    },
+    {
+      "file": "UD_English-EWT-en_ewt-ud-dev.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.15/en_ewt-ud-dev.conllu",
+      "sha256": "14a82ce2c4c4648c3e7c4efc76872c85c5f4c39643fcb7f9c91a45a58157a270",
+      "bytes": 1804172
+    },
+    {
+      "file": "UD_English-EWT-en_ewt-ud-test.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.15/en_ewt-ud-test.conllu",
+      "sha256": "0612e45914359e4b36d187ef2bfeaf66fc8933210925be985c5fbf6a9e311036",
+      "bytes": 1803651
+    },
+    {
+      "file": "UD_English-EWT-LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.15/LICENSE.txt",
+      "sha256": "b3d1b0f4c6ae151f7eb78738f46ebd5ee140f8a7f76501ba26af123140d35ae7",
+      "bytes": 20014
+    },
+    {
+      "file": "UD_English-EWT-README.md",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.15/README.md",
+      "sha256": "fc0c5d1344f56442af1501c8c2c850c002924ab6fe20f7de6f8667c1ebc46a79",
+      "bytes": 16722
+    },
+    {
+      "file": "UD_Chinese-GSD-zh_gsd-ud-train.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Chinese-GSD/r2.15/zh_gsd-ud-train.conllu",
+      "sha256": "4d1c91109b90deb44037387b67337683f3dd8372dd6e2e09a63eaceccfea6a7e",
+      "bytes": 9182849
+    },
+    {
+      "file": "UD_Chinese-GSD-zh_gsd-ud-dev.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Chinese-GSD/r2.15/zh_gsd-ud-dev.conllu",
+      "sha256": "c47229001ede78b41a3304570689aedc841d3e5465082e19f418ecb29418733d",
+      "bytes": 1179647
+    },
+    {
+      "file": "UD_Chinese-GSD-zh_gsd-ud-test.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Chinese-GSD/r2.15/zh_gsd-ud-test.conllu",
+      "sha256": "b4984c1d8434c866c3b4e32906c941db274942ed0cde6af783939cfbeca68c99",
+      "bytes": 1120631
+    },
+    {
+      "file": "UD_Chinese-GSD-LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Chinese-GSD/r2.15/LICENSE.txt",
+      "sha256": "899b1804a12ebc090b96339614eede1b64b686721b650a71430b55b5235f7f79",
+      "bytes": 202
+    },
+    {
+      "file": "UD_Chinese-GSD-README.md",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Chinese-GSD/r2.15/README.md",
+      "sha256": "83d0cbfa1d7a87d6928ae4de69b679274628bbde828fde5e37f149eaf7bff004",
+      "bytes": 2841
+    },
+    {
+      "file": "eng_sentences_CC0.tsv.bz2",
+      "url": "https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences_CC0.tsv.bz2",
+      "sha256": "c2e2edd063a31cbbc8e416a4858225e934bbb0afff485031821e59f230ccf1ca",
+      "bytes": 1288689,
+      "license": "CC0-1.0"
+    }
+  ],
+  "model_sha256": "30f440a6e2b5db5537512edb51961294899c64534c3f9bcb7f76d6d1fdb93d56",
+  "model_bytes": 3818280,
+  "oov_rates": {
+    "train": 0.08609852485265561,
+    "dev": 0.08569069246195588,
+    "test": 0.08709737248840804
+  },
+  "lexicon_sources": {
+    "zhuyin.tsv": "94d263b31f8572ce598b51c85cb0bee72968e2212217dcb40b3ad981bf1eab3f",
+    "zhuyin_extra.tsv": "7d58e17a74842f028a7a410ea466d0773d2e602dc61205ce48b0448065503cb4"
+  },
+  "numpy_version": "2.5.4",
+  "vocab_sha256": "51dae44af2580595c6c8fcbd1c91599f36ef65e6495545fe32be6a90ea4df7f4"
+}
