@@ -1,0 +1,9 @@
+[Addon]
+Name=SentiIME
+Name[zh_TW]=SentiIME 情境感知中英混打
+Category=InputMethod
+Version=@PROJECT_VERSION@
+Library=senti
+Type=SharedLibrary
+OnDemand=True
+Configurable=True

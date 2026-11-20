@@ -1,0 +1,8 @@
+[InputMethod]
+Name=@IM_NAME@
+Name[zh_TW]=@IM_NATIVE_NAME@
+Icon=@CMAKE_INSTALL_FULL_DATADIR@/pixmaps/senti-ime-panel-v2.png
+Label=@IM_LABEL@
+LangCode=zh_TW
+Addon=senti
+Configurable=True

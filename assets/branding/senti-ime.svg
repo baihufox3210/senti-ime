@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">SentiIME</title>
+  <desc id="desc">深藍圓角方形中的薄荷綠注音ㄅ與白色英文 a，代表台灣注音與英文混打。</desc>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="#142B38"/>
+  <path d="M36 35 32 49H60L56 78Q55 90 44 90H38" stroke="#65E3BD" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="85" cy="76" r="13" stroke="#F3F8F7" stroke-width="8"/>
+  <path d="M98 63V89" stroke="#F3F8F7" stroke-width="8" stroke-linecap="round"/>
+</svg>
