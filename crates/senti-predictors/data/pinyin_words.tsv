@@ -1,0 +1,235 @@
+# Multi-character words. Format: pinyin (syllables separated by ')<TAB>text<TAB>frequency[<TAB>comma,separated,tags]
+ni'hao	你好	5000	greeting
+ni'hao	妳好	1200	greeting
+nin'hao	您好	2500	greeting,formal
+zao'an	早安	2500	greeting,morning
+zao'shang'hao	早上好	1200	greeting,morning
+wu'an	午安	800	greeting
+wan'an	晚安	2500	greeting,evening
+wan'shang'hao	晚上好	900	greeting,evening
+xie'xie	謝謝	5000	positive
+xie'xie'ni	謝謝你	1500	positive
+gan'xie	感謝	1800	positive,formal
+fei'chang'gan'xie	非常感謝	900	positive,formal
+dui'bu'qi	對不起	2000	negative
+bao'qian	抱歉	1500	negative,formal
+bu'hao'yi'si	不好意思	1800
+mei'guan'xi	沒關係	1500
+zai'jian	再見	2000	greeting
+bai'bai	掰掰	1000	casual,greeting
+ha'ha	哈哈	2500	casual,positive
+ha'ha'ha	哈哈哈	1500	casual,positive
+kai'xin	開心	2500	positive,casual
+gao'xing	高興	2200	positive
+kuai'le	快樂	2000	positive
+xing'fu	幸福	1200	positive
+xi'huan	喜歡	3000	positive
+ai'ni	愛你	1200	positive,casual
+tai'bang'le	太棒了	1500	positive,casual
+hen'bang	很棒	1200	positive
+bu'cuo	不錯	1800	positive
+mei'hao	美好	900	positive
+ke'ai	可愛	1300	positive,casual
+gong'xi	恭喜	1200	positive
+jia'you	加油	1800	positive,casual
+nan'guo	難過	1500	negative
+shang'xin	傷心	1300	negative
+sheng'qi	生氣	1300	negative
+tao'yan	討厭	1200	negative,casual
+fan'nao	煩惱	900	negative
+shi'wang	失望	900	negative
+dan'xin	擔心	1100	negative
+ya'li	壓力	1000	negative,work
+hao'lei	好累	1000	negative,casual
+an'wei	安慰	700	positive
+bie'dan'xin	別擔心	800	positive,casual
+mei'shi	沒事	1200	casual
+xiu'xi	休息	1300
+bao'zhong	保重	800	positive
+zhu'ni	祝你	900	positive
+sheng'ri'kuai'le	生日快樂	1500	positive,greeting
+xin'nian'kuai'le	新年快樂	1300	positive,greeting
+wo'men	我們	4500
+ni'men	你們	2500
+ta'men	他們	2800
+da'jia	大家	2500
+da'jia'hao	大家好	1200	greeting
+peng'you	朋友	2500
+tong'shi	同事	1200	work
+lao'shi	老師	1800
+xue'sheng	學生	1600
+jin'tian	今天	4000
+ming'tian	明天	3000
+zuo'tian	昨天	2800
+xian'zai	現在	3500
+gang'cai	剛才	1200
+yi'hou	以後	1800
+yi'qian	以前	1800
+shi'jian	時間	2800
+ri'qi	日期	900	work
+xing'qi	星期	1200
+zhou'mo	週末	1100	casual
+shang'wu	上午	1300	morning
+xia'wu	下午	1600
+wan'shang	晚上	2000	evening
+zao'shang	早上	1600	morning
+zhong'wu	中午	1100
+tian'qi	天氣	1800
+xia'yu	下雨	900
+chi'fan	吃飯	2000	casual
+wu'can	午餐	900
+wan'can	晚餐	1000	evening
+zao'can	早餐	1000	morning
+ka'fei	咖啡	1200
+nai'cha	奶茶	800	casual
+shui'jiao	睡覺	1500	evening
+qi'chuang	起床	1000	morning
+hui'jia	回家	1500
+shang'ban	上班	1500	work
+xia'ban	下班	1400	work
+gong'zuo	工作	3000	work
+gong'si	公司	2200	work
+hui'yi	會議	1500	work,formal
+xiang'mu	項目	900	work
+ji'hua	計劃	1100	work
+bao'gao	報告	1200	work,formal
+jie'guo	結果	1500
+wen'ti	問題	3000
+fang'an	方案	900	work,formal
+zi'liao	資料	1300	work
+wen'jian	文件	1200	work
+you'jian	郵件	1100	work
+dian'hua	電話	1500
+shou'ji	手機	1600
+dian'nao	電腦	1500	tech
+cheng'shi	程式	1300	tech
+dai'ma	代碼	900	tech
+cheng'xu	程序	800	tech
+ruan'jian	軟體	1000	tech
+xi'tong	系統	1500	tech
+shu'ju	數據	1100	tech
+han'shu	函數	800	tech
+bian'liang	變數	700	tech
+ce'shi	測試	1200	tech
+bian'yi	編譯	600	tech
+jia'gou	架構	700	tech
+mo'kuai	模組	600	tech
+cha'jian	插件	500	tech
+shu'ru'fa	輸入法	1200	tech
+ren'gong'zhi'neng	人工智慧	900	tech
+zhi'neng	智慧	900	tech
+yu'ce	預測	800	tech
+xue'xi	學習	1800
+zhi'dao	知道	3500
+ke'yi	可以	4500
+ke'neng	可能	2500
+yi'ding	一定	2000
+dang'ran	當然	1800
+yi'jing	已經	3000
+hai'shi	還是	3000
+ran'hou	然後	3000
+suo'yi	所以	3000
+yin'wei	因為	3000
+dan'shi	但是	3000
+ru'guo	如果	2800
+ru'he	如何	1300	formal
+shen'me	什麼	4000
+zen'me	怎麼	3500
+zen'me'yang	怎麼樣	1500
+wei'shen'me	為什麼	2200
+na'li	哪裡	1800
+zhe'li	這裡	1800
+na'ge	那個	2200
+zhe'ge	這個	3000
+zhe'yang	這樣	2500
+yi'qi	一起	2200
+yi'dian	一點	2000
+yi'xia	一下	2500	casual
+yi'yang	一樣	1800
+fei'chang	非常	2000
+zhen'de	真的	3000
+mei'you	沒有	4500
+bu'yao	不要	2500
+bu'yong	不用	1800
+xu'yao	需要	2500
+xi'wang	希望	2000	positive
+jue'de	覺得	2800
+ren'wei	認為	1800	formal
+xiang'yao	想要	1500
+zhun'bei	準備	1500
+kai'shi	開始	2200
+jie'shu	結束	1300
+wan'cheng	完成	1500	work
+que'ren	確認	1200	work,formal
+tong'zhi	通知	1100	work,formal
+can'jia	參加	1100
+huan'ying	歡迎	1300	positive,greeting
+qing'wen	請問	1500	formal
+ma'fan	麻煩	1300
+ma'fan'ni	麻煩你	800	formal
+xie'xie'nin	謝謝您	1000	positive,formal
+jing'qi'zhe	敬啟者	400	formal
+ci'zhi'jing'li	此致敬禮	500	formal
+zhu'hao	祝好	600	formal
+shun'li	順利	1000	positive
+cheng'gong	成功	1300	positive
+mei'tian	每天	1500
+yi'ge	一個	3500
+zhong'guo	中國	1800
+tai'wan	台灣	1800
+tai'bei	台北	1200
+shi'jie	世界	1800
+sheng'huo	生活	1800
+dian'ying	電影	1200	casual
+yin'yue	音樂	1200
+you'xi	遊戲	1200	casual
+lv'xing	旅行	900	positive
+xiang'nian	想念	800
+xiang'ni	想你	900	casual
+hao'de	好的	2500
+hao'a	好啊	1200	casual
+dui'a	對啊	1200	casual
+shi'ma	是嗎	1000	casual
+zhen'de'ma	真的嗎	900	casual
+mei'wen'ti	沒問題	1500	positive
+dang'xin	當心	300
+chi'le'ma	吃了嗎	700	casual,greeting
+zui'jin	最近	1800
+zui'jin'hao'ma	最近好嗎	700	greeting,casual
+xin'ku'le	辛苦了	1100	positive
+xin'ku	辛苦	900
+xiang'chi	想吃	800	casual
+hao'chi	好吃	1100	positive,casual
+hao'kan	好看	1000	positive
+dian'zan	點讚	500	positive,casual
+
+# Taiwan daily vocabulary; authored seed frequencies, not corpus statistics.
+jie'yun	捷運	1200
+gong'che	公車	1000
+ji'che	機車	1000
+gao'tie	高鐵	1000
+tai'tie	台鐵	900
+you'you'ka	悠遊卡	800
+bian'dang	便當	1100
+wai'dai	外帶	900
+nei'yong	內用	900
+chao'shang	超商	1000
+fa'piao	發票	1000
+zai'ju	載具	700
+tai'wan	臺灣	1200
+tai'bei	臺北	1000
+xin'bei	新北	900
+tao'yuan	桃園	900
+xin'zhu	新竹	900
+tai'zhong	台中	900
+tai'nan	台南	900
+gao'xiong	高雄	900
+jia'yi	嘉義	800
+hua'lian	花蓮	800
+tai'dong	台東	800
+yi'lan	宜蘭	800
+ping'dong	屏東	800
+ji'long	基隆	800
+tai'zhong	臺中	800
+tai'nan	臺南	800
+tai'dong	臺東	700

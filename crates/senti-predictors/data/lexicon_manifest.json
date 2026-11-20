@@ -1,0 +1,30 @@
+{
+  "upstream": "https://github.com/openvanilla/McBopomofo/tree/1b7fbb999a354ba80e5cf20820ddd4093c6ed77e",
+  "upstream_sha256": {
+    "BPMFMappings.txt": "5d6accefba88b57a505eb25326b5d813d4e529c698707883c664a6a3fa58b443",
+    "BPMFBase.txt": "46e64a53dc9c6baa2cbe6e0b1af572f8ef6aafb50597178b5fd53df804316ce7",
+    "phrase.occ": "a64d57e38b24f1dcc5c1ce31cc3b2244f90206033936c1dc6ca9c6e54a552e8d"
+  },
+  "cns_properties_sha256": "3d56ef14cc8099893245dac58fe4718d2fa64812b9159352a98a4588ad3efa5c",
+  "subset_sha256": "4ae3190bb3f1b4280667632b342c185ebc05c2c9a5935b103693a323360583d1",
+  "domain_sha256": "d7d9591353e4efd8650f214d5631fb5b34925a9a77ec5503755f1081a33f9c9a",
+  "seed_zhuyin_sha256": "94d263b31f8572ce598b51c85cb0bee72968e2212217dcb40b3ad981bf1eab3f",
+  "counts": {
+    "seed_readings": 746,
+    "imported_zhuyin_readings": 109177,
+    "total_zhuyin_readings": 109923,
+    "imported_pinyin_readings": 105344,
+    "unique_texts": 101798,
+    "unique_phrases": 80104,
+    "unique_characters": 21694
+  },
+  "normalisation": {
+    "phrase_ceiling": 3000,
+    "character_ceiling": 2000,
+    "minimum": 1
+  },
+  "outputs_sha256": {
+    "zhuyin_extra.tsv": "dbcb9e0ba75ee76ceb2de963ac8b8954679279e20705a76d19a2692980278465",
+    "pinyin_extra.tsv": "a9706713a5ac45a52f78051e91819456bdd600597d3a4ccfeee55f62947faaf4"
+  }
+}

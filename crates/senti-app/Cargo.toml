@@ -1,0 +1,27 @@
+[package]
+name = "senti-app"
+description = "Composition root wiring SentiIME adapters into an engine, plus the headless CLI demo."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "senti-cli"
+path = "src/bin/senti-cli.rs"
+
+[dependencies]
+senti-core.workspace = true
+senti-context.workspace = true
+senti-predictors.workspace = true
+senti-plugins.workspace = true
+senti-storage.workspace = true
+senti-engine.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

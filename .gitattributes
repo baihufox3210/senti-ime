@@ -1,0 +1,5 @@
+# Empty trailing TSV fields and Zhuyin first-tone spaces are significant data.
+*.tsv whitespace=-blank-at-eol
+# Preserve upstream license texts byte-for-byte.
+crates/senti-predictors/data/licenses/* -whitespace
+models/*/licenses/* -whitespace

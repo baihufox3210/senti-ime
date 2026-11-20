@@ -1,0 +1,17 @@
+[package]
+name = "senti-context"
+description = "Rule-based context analyzer (sentiment, formality, time of day) for SentiIME."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+senti-core.workspace = true
+
+[dev-dependencies]
+
+
+[lints]
+workspace = true

@@ -1,0 +1,238 @@
+{
+  "architecture": "context6 + idf-topic12 embedding32 -> tanh96 -> sampled-softmax word head + supervised POS head",
+  "seed": 4129,
+  "epochs": 16,
+  "examples_per_epoch": 320000,
+  "vocabulary": 11779,
+  "examples": {
+    "train": 1491006,
+    "dev": 84770,
+    "test": 80875
+  },
+  "validation": {
+    "sampled_accuracy": 0.547,
+    "sampled_nll": 1.4847711181640626,
+    "unigram_sampled_accuracy": 0.14116666666666666,
+    "pos_accuracy": 0.4659450897571278
+  },
+  "test": {
+    "sampled_accuracy": 0.5606666666666666,
+    "sampled_nll": 1.4436233418782551,
+    "unigram_sampled_accuracy": 0.13,
+    "pos_accuracy": 0.48013415892672856
+  },
+  "history": [
+    {
+      "sampled_accuracy": 0.43916666666666665,
+      "sampled_nll": 1.8404366251627604,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.42687434002111935,
+      "epoch": 1,
+      "seconds": 28.7
+    },
+    {
+      "sampled_accuracy": 0.47733333333333333,
+      "sampled_nll": 1.6943064320882162,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.438753959873284,
+      "epoch": 2,
+      "seconds": 57.8
+    },
+    {
+      "sampled_accuracy": 0.49583333333333335,
+      "sampled_nll": 1.6471765518188477,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.4516895459345301,
+      "epoch": 3,
+      "seconds": 86.8
+    },
+    {
+      "sampled_accuracy": 0.5166666666666667,
+      "sampled_nll": 1.5976636505126953,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.4574973600844773,
+      "epoch": 4,
+      "seconds": 115.6
+    },
+    {
+      "sampled_accuracy": 0.5181666666666667,
+      "sampled_nll": 1.5641978607177733,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.45908130939809927,
+      "epoch": 5,
+      "seconds": 144.1
+    },
+    {
+      "sampled_accuracy": 0.5235,
+      "sampled_nll": 1.5482521006266277,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.4654171066525871,
+      "epoch": 6,
+      "seconds": 172.8
+    },
+    {
+      "sampled_accuracy": 0.5286666666666666,
+      "sampled_nll": 1.5278702341715495,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.4654171066525871,
+      "epoch": 7,
+      "seconds": 201.6
+    },
+    {
+      "sampled_accuracy": 0.5361666666666667,
+      "sampled_nll": 1.521476282755534,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.4656810982048574,
+      "epoch": 8,
+      "seconds": 231.6
+    },
+    {
+      "sampled_accuracy": 0.5406666666666666,
+      "sampled_nll": 1.5114539947509766,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.46673706441393875,
+      "epoch": 9,
+      "seconds": 261.4
+    },
+    {
+      "sampled_accuracy": 0.5423333333333333,
+      "sampled_nll": 1.5026212158203125,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.4662090813093981,
+      "epoch": 10,
+      "seconds": 291.4
+    },
+    {
+      "sampled_accuracy": 0.5426666666666666,
+      "sampled_nll": 1.4975001373291015,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.47016895459345304,
+      "epoch": 11,
+      "seconds": 320.7
+    },
+    {
+      "sampled_accuracy": 0.5441666666666667,
+      "sampled_nll": 1.4975498123168944,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.46673706441393875,
+      "epoch": 12,
+      "seconds": 350.2
+    },
+    {
+      "sampled_accuracy": 0.545,
+      "sampled_nll": 1.4961368916829427,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.4696409714889124,
+      "epoch": 13,
+      "seconds": 380.1
+    },
+    {
+      "sampled_accuracy": 0.5446666666666666,
+      "sampled_nll": 1.4904027760823568,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.4677930306230201,
+      "epoch": 14,
+      "seconds": 410.1
+    },
+    {
+      "sampled_accuracy": 0.5476666666666666,
+      "sampled_nll": 1.4873668263753255,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.4659450897571278,
+      "epoch": 15,
+      "seconds": 440.1
+    },
+    {
+      "sampled_accuracy": 0.547,
+      "sampled_nll": 1.4847711181640626,
+      "unigram_sampled_accuracy": 0.14116666666666666,
+      "pos_accuracy": 0.4659450897571278,
+      "epoch": 16,
+      "seconds": 470.2
+    }
+  ],
+  "sources": [
+    {
+      "file": "UD_English-EWT-en_ewt-ud-train.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.15/en_ewt-ud-train.conllu",
+      "sha256": "a049fc40822e21593ff89ccd0a4b081443f09fae71b61f813c624aa598f6c566",
+      "bytes": 14190227
+    },
+    {
+      "file": "UD_English-EWT-en_ewt-ud-dev.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.15/en_ewt-ud-dev.conllu",
+      "sha256": "14a82ce2c4c4648c3e7c4efc76872c85c5f4c39643fcb7f9c91a45a58157a270",
+      "bytes": 1804172
+    },
+    {
+      "file": "UD_English-EWT-en_ewt-ud-test.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.15/en_ewt-ud-test.conllu",
+      "sha256": "0612e45914359e4b36d187ef2bfeaf66fc8933210925be985c5fbf6a9e311036",
+      "bytes": 1803651
+    },
+    {
+      "file": "UD_English-EWT-LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.15/LICENSE.txt",
+      "sha256": "b3d1b0f4c6ae151f7eb78738f46ebd5ee140f8a7f76501ba26af123140d35ae7",
+      "bytes": 20014
+    },
+    {
+      "file": "UD_English-EWT-README.md",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/r2.15/README.md",
+      "sha256": "fc0c5d1344f56442af1501c8c2c850c002924ab6fe20f7de6f8667c1ebc46a79",
+      "bytes": 16722
+    },
+    {
+      "file": "UD_Chinese-GSD-zh_gsd-ud-train.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Chinese-GSD/r2.15/zh_gsd-ud-train.conllu",
+      "sha256": "4d1c91109b90deb44037387b67337683f3dd8372dd6e2e09a63eaceccfea6a7e",
+      "bytes": 9182849
+    },
+    {
+      "file": "UD_Chinese-GSD-zh_gsd-ud-dev.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Chinese-GSD/r2.15/zh_gsd-ud-dev.conllu",
+      "sha256": "c47229001ede78b41a3304570689aedc841d3e5465082e19f418ecb29418733d",
+      "bytes": 1179647
+    },
+    {
+      "file": "UD_Chinese-GSD-zh_gsd-ud-test.conllu",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Chinese-GSD/r2.15/zh_gsd-ud-test.conllu",
+      "sha256": "b4984c1d8434c866c3b4e32906c941db274942ed0cde6af783939cfbeca68c99",
+      "bytes": 1120631
+    },
+    {
+      "file": "UD_Chinese-GSD-LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Chinese-GSD/r2.15/LICENSE.txt",
+      "sha256": "899b1804a12ebc090b96339614eede1b64b686721b650a71430b55b5235f7f79",
+      "bytes": 202
+    },
+    {
+      "file": "UD_Chinese-GSD-README.md",
+      "url": "https://raw.githubusercontent.com/UniversalDependencies/UD_Chinese-GSD/r2.15/README.md",
+      "sha256": "83d0cbfa1d7a87d6928ae4de69b679274628bbde828fde5e37f149eaf7bff004",
+      "bytes": 2841
+    },
+    {
+      "file": "eng_sentences_CC0.tsv.bz2",
+      "url": "https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences_CC0.tsv.bz2",
+      "sha256": "c2e2edd063a31cbbc8e416a4858225e934bbb0afff485031821e59f230ccf1ca",
+      "bytes": 1288689,
+      "license": "CC0-1.0"
+    }
+  ],
+  "lexicon_sources": {
+    "zhuyin.tsv": "94d263b31f8572ce598b51c85cb0bee72968e2212217dcb40b3ad981bf1eab3f",
+    "zhuyin_extra.tsv": "dbcb9e0ba75ee76ceb2de963ac8b8954679279e20705a76d19a2692980278465",
+    "domain_terms.tsv": "d7d9591353e4efd8650f214d5631fb5b34925a9a77ec5503755f1081a33f9c9a",
+    "domain_sentences.txt": "f4846ec84fa8f55732d83dedad55529d8625b7d031ba4cd5d07a11fc4824ecb0"
+  },
+  "numpy_version": "2.5.4",
+  "model_sha256": "9b3c364b523fc4fb0ac6ac1a8c6d1ea678b036bbfaabc607ad13101734c3c17a",
+  "model_bytes": 7066584,
+  "vocab_sha256": "750bd00f89e6f01e29bc1e98ed807b919728173ec1057429f00895319902083e",
+  "oov_rates": {
+    "train": 0.049128574935312135,
+    "dev": 0.07195941960599268,
+    "test": 0.072370942812983
+  }
+}

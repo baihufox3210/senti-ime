@@ -1,0 +1,748 @@
+# Dachen keys (space = first tone)	text	frequency	tags
+# Derived from CNS11643; see SOURCES.md. Do not trim column 1.
+8 	啊	3000	
+87	啊	3000	
+94	愛	3000	positive
+93	矮	300	
+0 	安	1500	
+04	按	800	
+18 	吧	3500	casual
+187	吧	3500	casual
+18 	八	1500	
+183	把	2500	
+184	把	2500	
+184	爸	800	
+196	白	1200	
+193	百	1000	
+104	半	1000	
+10 	班	900	
+104	辦	900	
+1; 	幫	1500	
+1l 	包	1000	
+1l4	報	900	
+1l3	寶	600	
+1o4	被	2000	
+1o3	北	900	
+1o4	北	900	
+1o 	杯	500	
+1p3	本	1500	
+1u3	比	1800	
+1u4	比	1800	
+1u3	筆	500	
+1u0 	邊	1200	
+1u04	變	1100	
+1ul3	表	1000	
+1u,6	別	1500	
+1u/4	病	700	
+1u/ 	冰	500	
+1j6	不	6000	
+1j4	不	6000	
+1j4	部	1200	
+1j4	步	600	
+h96	才	1800	
+h94	菜	800	
+h0 	參	700	
+hk4	測	600	
+t;6	長	1500	
+t;6	常	1400	
+t;4	唱	600	
+tl 	超	900	casual
+tl3	吵	400	
+tk 	車	1200	
+tp6	陳	600	
+t/6	成	1600	
+t/6	城	700	
+t 	吃	2000	
+t6	遲	300	
+tj 	出	2500	
+tj3	處	900	
+tj4	處	900	
+tj0 	穿	600	
+tj06	船	400	
+tj;6	床	500	
+tjp 	春	500	
+h4	次	1600	
+h6	詞	500	
+hj/ 	從	1500	
+hj/6	從	1500	
+hji4	錯	900	
+284	大	3500	
+286	打	1500	
+283	打	1500	
+294	帶	1100	
+29 	待	700	
+294	待	700	
+204	但	2000	
+20 	單	900	
+2; 	當	1800	
+2;3	當	1800	
+2;4	當	1800	
+2l4	到	3500	
+2l4	道	1800	
+2k7	的	9000	
+2k6	得	3000	
+2k7	得	3000	
+2k7	地	2500	
+2/3	等	1800	
+2/ 	燈	400	
+2u4	第	1500	
+2u 	低	700	
+2u03	點	2200	
+2u04	電	1500	
+2u04	店	700	
+2ul4	掉	800	
+2u/4	定	1500	
+2j/ 	東	1100	
+2j/4	動	1300	
+2j/3	懂	600	
+2. 	都	3000	
+2j6	讀	700	
+2j4	度	900	
+2j03	短	500	
+2jo4	對	3000	
+2ji 	多	2800	
+2ji6	多	2800	
+k4	餓	500	
+-4	二	1800	
+-6	兒	900	
+z8 	發	1700	
+z8 	法	1500	
+z86	法	1500	
+z83	法	1500	
+z84	法	1500	
+z04	飯	1000	
+z0 	反	900	
+z03	反	900	
+z04	反	900	
+z; 	方	1600	
+z;3	放	1300	
+z;4	放	1300	
+z;6	房	700	
+zo 	飛	800	
+zo 	非	1100	
+zo3	非	1100	
+zo4	費	700	
+zp 	分	1800	
+zp4	分	1800	
+z/ 	風	900	
+z/4	風	900	
+zj6	服	900	
+zj6	福	600	
+zj3	父	600	
+zj4	父	600	
+e9 	該	1500	
+e93	改	800	
+e04	幹	800	
+e03	感	1100	
+e03	趕	500	
+e; 	剛	1000	
+el 	高	1600	
+el4	告	700	
+ek3	個	5000	
+ek4	個	5000	
+ek7	個	5000	
+ek 	歌	800	
+ek 	哥	700	
+eo3	給	2200	
+ep 	跟	1800	
+ep 	根	600	
+e/ 	更	1500	
+e/4	更	1500	
+ej/ 	工	1500	
+ej/ 	公	1500	
+e.4	夠	900	
+e.3	狗	600	
+ej3	古	500	
+ej4	故	700	
+ej84	掛	400	
+ej0 	關	1500	
+ej03	管	900	
+ej; 	光	900	
+ejo4	貴	700	
+eji6	國	2500	
+eji 	過	3000	
+eji4	過	3000	
+eji3	果	1000	
+c96	還	3000	
+c93	海	900	
+c96	孩	800	
+c04	漢	500	
+cl3	好	6000	positive
+cl4	好	6000	positive
+cl6	號	900	
+cl4	號	900	
+ck6	和	3500	
+ck4	和	3500	
+ck 	喝	900	
+ck4	喝	900	
+ck6	河	400	
+co 	黑	700	
+co3	黑	700	
+cp3	很	3500	
+cj/6	紅	700	
+c.4	後	2500	
+cj6	湖	400	
+cj 	虎	300	
+cj3	虎	300	
+cj84	話	1600	
+cj8 	花	1000	
+cj84	畫	600	
+cj04	換	700	
+cj0 	歡	600	
+cj;6	黃	600	
+cjo3	會	4000	
+cjo4	會	4000	
+cjo6	回	2000	
+cji4	或	1200	
+cji3	火	700	
+ru 	機	1500	
+ru 	幾	1600	
+ru3	幾	1600	
+ru4	記	1100	
+ru8 	家	2500	
+ru8 	加	1500	
+ru04	見	1800	
+ru0 	間	1500	
+ru04	間	1500	
+ru04	件	1200	
+ru; 	將	1000	
+ru;4	將	1000	
+ru;3	講	900	
+rul4	叫	1300	
+rul 	教	1000	
+rul4	教	1000	
+ru,3	姐	700	
+ru, 	接	1100	
+ru, 	街	500	
+rup 	今	1100	
+rup4	進	1600	
+rup4	近	900	
+ru/ 	經	1600	
+ru/ 	京	500	
+ru.4	就	4500	
+ru.3	九	1000	
+ru.3	久	800	
+rm4	句	500	
+rm,6	覺	1200	
+d9 	開	2500	
+d0 	看	3000	
+d04	看	3000	
+dl3	考	900	
+dk3	可	3000	
+dk4	可	3000	
+dk4	課	800	
+dk4	客	700	
+dj/ 	空	800	
+dj/4	空	800	
+d.3	口	900	
+dj94	快	1800	
+dj94	塊	600	
+x8 	啦	1500	casual
+x87	啦	1500	casual
+x8 	拉	600	
+x96	來	4000	
+x94	來	4000	
+x06	藍	400	
+xl3	老	1800	
+xk7	了	8000	
+xk4	樂	900	positive
+xo6	累	900	negative
+xo3	累	900	negative
+xo4	累	900	negative
+x/3	冷	700	
+xu3	裡	2500	
+xu3	理	1500	
+xu4	力	1200	
+xu06	連	900	
+xu;3	兩	1600	
+xu;6	亮	600	
+xu;4	亮	600	
+xup6	林	700	
+xu/6	零	600	
+xu.4	六	900	
+xu.6	留	700	
+xj/6	龍	500	
+xj4	路	1200	
+xm4	綠	400	
+a83	嗎	4000	
+a87	嗎	4000	
+a8 	媽	900	
+a83	馬	900	
+a93	買	1100	
+a94	賣	600	
+a04	慢	700	
+a03	滿	800	
+a;6	忙	900	
+al 	貓	600	
+al6	毛	500	
+ak7	麼	2500	
+ao6	沒	3500	
+ao3	美	1300	positive
+ao3	每	1300	
+ap6	們	4500	
+ap7	們	4500	
+ap6	門	900	
+au3	米	500	
+au04	面	1500	
+au/6	明	2000	
+au/6	名	1100	
+aj4	木	400	
+s8 	那	3500	
+s83	那	3500	
+s84	那	3500	
+s86	拿	800	
+s83	哪	1500	
+s93	奶	400	
+s06	難	1200	
+s04	難	1200	
+s06	男	900	
+s06	南	700	
+sk7	呢	2500	
+s/6	能	2800	
+su3	你	6000	
+su3	妳	1500	
+su06	年	2200	
+su04	念	500	
+su.6	牛	500	
+sm3	女	1000	
+sm4	女	1000	
+q84	怕	900	
+ql6	跑	700	
+ql3	跑	700	
+q/6	朋	600	
+qu6	皮	400	
+qu0 	片	700	
+qu04	片	700	
+qul 	票	500	
+qul4	票	500	
+qu/6	平	900	
+fu3	起	2500	
+fu 	七	900	
+fu4	氣	1300	
+fu 	期	1100	
+fu6	期	1100	
+fu06	錢	1200	
+fu06	前	2000	
+fu0 	千	600	
+fu; 	強	800	
+fu;6	強	800	
+fu;3	強	800	
+fu/ 	請	2000	formal
+fu/6	請	2000	formal
+fu/3	請	2000	formal
+fu/6	情	1500	
+fu/ 	輕	600	
+fu.6	球	600	
+fm4	去	3000	
+fm3	取	600	
+fm06	全	1300	
+fm,4	卻	900	
+b06	然	2000	
+b;4	讓	1500	
+bk4	熱	700	
+bp6	人	4500	
+bp4	認	1100	
+b4	日	1500	
+bj/6	容	800	
+bj6	如	1300	
+n0 	三	1600	
+n04	三	1600	
+g;3	上	3500	
+g;4	上	3500	
+g; 	商	800	
+gl3	少	1100	
+gl4	少	1100	
+gk4	社	700	
+go6	誰	1300	
+gp6	什	2500	
+gp 	身	1200	
+gp 	深	600	
+g/ 	生	2500	
+g/ 	聲	900	
+g4	是	8000	
+g6	時	3500	
+g6	十	1500	
+g4	事	2500	
+g4	市	900	
+g.3	手	1500	
+g. 	收	900	
+gj 	書	1100	
+gj3	數	900	
+gj4	數	900	
+gjo3	水	1200	
+gjo4	睡	800	
+gji 	說	3500	
+n4	四	1100	
+n 	思	900	
+n4	思	900	
+n3	死	700	
+nj/4	送	700	
+nji3	所	2000	
+w8 	他	4500	
+w8 	她	2500	
+w8 	它	1000	
+w94	太	2000	
+wu0 	天	2800	
+wu06	甜	400	
+wul6	條	900	
+wul4	跳	500	
+wu/ 	聽	1300	
+wu/4	聽	1300	
+wu/6	停	500	
+wj/6	同	1600	
+wj/4	同	1600	
+w.6	頭	1200	
+w.7	頭	1200	
+wj6	圖	700	
+j94	外	1300	
+j06	完	1500	
+j03	晚	1200	evening
+j06	玩	1000	casual
+j04	玩	1000	casual
+j04	萬	900	
+j;6	王	700	
+j;4	王	700	
+j;6	忘	700	
+j;4	忘	700	
+j;3	往	800	
+jo6	為	2800	
+jo4	為	2800	
+jo4	位	1100	
+jo4	喂	500	casual
+jp4	問	1500	
+jp6	文	1200	
+jp4	文	1200	
+ji3	我	8000	
+j3	五	1100	
+j6	無	1000	
+vu3	喜	900	
+vu 	西	1100	
+vu3	洗	500	
+vu84	下	3000	
+vu84	夏	500	
+vu0 	先	1600	
+vu04	先	1600	
+vu04	現	1500	
+vu;3	想	2800	
+vu;4	向	1000	
+vul3	小	2500	
+vul4	笑	900	positive
+vu,3	寫	1100	
+vu,4	寫	1100	
+vu,4	謝	1200	positive
+vup 	心	1800	
+vup 	新	1500	
+vu/6	行	1700	
+vu/4	行	1700	
+vu/ 	星	700	
+vu. 	休	500	
+vu.3	休	500	
+vm 	需	800	
+vm,6	學	1800	
+vm,3	雪	400	
+vm,4	雪	400	
+u8 	呀	1200	casual
+u87	呀	1200	casual
+u03	眼	900	
+u06	言	700	
+u;4	樣	2200	
+u;6	羊	300	
+ul 	要	4500	
+ul4	要	4500	
+u,3	也	4000	
+u,4	夜	700	evening
+u 	一	7000	
+u6	一	7000	
+u4	一	7000	
+u3	以	2500	
+u3	已	1500	
+u4	意	1300	
+up 	因	1500	
+up 	音	800	
+up4	音	800	
+u/ 	應	1500	
+u/4	應	1500	
+u/ 	英	700	
+m/4	用	2500	
+u.3	有	6000	
+u.4	有	6000	
+u.4	又	1800	
+u.3	友	700	
+m3	雨	700	
+m4	雨	700	
+m6	魚	500	
+m3	語	900	
+m4	語	900	
+m06	元	800	
+m03	遠	700	
+m04	遠	700	
+m,4	月	1500	
+mp4	運	700	
+mp6	雲	500	
+y94	在	6000	
+y94	再	2200	
+yl3	早	1300	morning
+yk6	則	700	
+yp3	怎	1800	
+504	站	800	
+5; 	張	900	
+5;4	張	900	
+5l3	找	1400	
+5k4	這	5000	
+5k7	著	2500	
+5p 	真	2200	
+5/ 	正	1500	
+5/4	正	1500	
+5 	只	2200	
+53	只	2200	
+5 	知	1800	
+54	知	1800	
+5 	之	1600	
+5j/ 	中	2500	
+5j/4	中	2500	
+5. 	週	700	
+5j4	住	900	
+5j3	主	1300	
+y4	字	1100	
+y4	自	1800	
+yj/3	總	900	
+y.3	走	1500	
+yjo4	最	2200	
+yji4	做	2000	
+yji4	坐	900	
+yji 	作	1800	
+yji6	作	1800	
+yji4	作	1800	
+yji3	左	500	
+su3cl3	你好	5000	greeting
+su3cl3	妳好	1200	greeting
+sup6cl3	您好	2500	greeting,formal
+yl30 	早安	2500	greeting,morning
+yl3g;4cl3	早上好	1200	greeting,morning
+j30 	午安	800	greeting
+j030 	晚安	2500	greeting,evening
+j03g;4cl3	晚上好	900	greeting,evening
+vu,4vu,4	謝謝	5000	positive
+vu,4vu,4su3	謝謝你	1500	positive
+e03vu,4	感謝	1800	positive,formal
+zo t;6e03vu,4	非常感謝	900	positive,formal
+2jo41j4fu3	對不起	2000	negative
+1l4fu04	抱歉	1500	negative,formal
+1j4cl3u4n7	不好意思	1800	
+ao6ej0 vu4	沒關係	1500	
+y94ru04	再見	2000	greeting
+19 19 	掰掰	1000	casual,greeting
+c8 c8 	哈哈	2500	casual,positive
+c8 c8 c8 	哈哈哈	1500	casual,positive
+d9 vup 	開心	2500	positive,casual
+el vu/4	高興	2200	positive
+dj94xk4	快樂	2000	positive
+vu/4zj6	幸福	1200	positive
+vu3cj0 	喜歡	3000	positive
+94su3	愛你	1200	positive,casual
+w941;4xk7	太棒了	1500	positive,casual
+cp31;4	很棒	1200	positive
+1j4hji4	不錯	1800	positive
+ao3cl3	美好	900	positive
+dk394	可愛	1300	positive,casual
+ej/ vu3	恭喜	1200	positive
+ru8 u.6	加油	1800	positive,casual
+s06eji4	難過	1500	negative
+g; vup 	傷心	1300	negative
+g/ fu4	生氣	1300	negative
+wl3u04	討厭	1200	negative,casual
+z06sl3	煩惱	900	negative
+g j;4	失望	900	negative
+20 vup 	擔心	1100	negative
+u8 xu4	壓力	1000	negative,work
+cl3xo4	好累	1000	negative,casual
+0 jo4	安慰	700	positive
+1u,620 vup 	別擔心	800	positive,casual
+ao6g4	沒事	1200	casual
+vu.3vu6	休息	1300	
+1l35j/4	保重	800	positive
+5j4su3	祝你	900	positive
+g/ b4dj94xk4	生日快樂	1500	positive,greeting
+vup su06dj94xk4	新年快樂	1300	positive,greeting
+ji3ap7	我們	4500	
+su3ap7	你們	2500	
+w8 ap7	他們	2800	
+284ru8 	大家	2500	
+284ru8 cl3	大家好	1200	greeting
+q/6u.3	朋友	2500	
+wj/6g4	同事	1200	work
+xl3g 	老師	1800	
+vm,6g/ 	學生	1600	
+rup wu0 	今天	4000	
+au/6wu0 	明天	3000	
+yji6wu0 	昨天	2800	
+vu04y94	現在	3500	
+e; h96	剛才	1200	
+u3c.4	以後	1800	
+u3fu06	以前	1800	
+g6ru0 	時間	2800	
+b4fu6	日期	900	work
+vu/ fu6	星期	1200	
+5. ai4	週末	1100	casual
+g;4j3	上午	1300	morning
+vu84j3	下午	1600	
+j03g;4	晚上	2000	evening
+yl3g;4	早上	1600	morning
+5j/ j3	中午	1100	
+wu0 fu4	天氣	1800	
+vu84m3	下雨	900	
+t z04	吃飯	2000	casual
+j3h0 	午餐	900	
+j03h0 	晚餐	1000	evening
+yl3h0 	早餐	1000	morning
+d8 zo 	咖啡	1200	
+s93t86	奶茶	800	casual
+gjo4rul4	睡覺	1500	evening
+fu3tj;6	起床	1000	morning
+cjo6ru8 	回家	1500	
+g;410 	上班	1500	work
+vu8410 	下班	1400	work
+ej/ yji4	工作	3000	work
+ej/ n 	公司	2200	work
+cjo4u4	會議	1500	work,formal
+vu;4aj4	項目	900	work
+ru4cj84	計劃	1100	work
+1l4el4	報告	1200	work,formal
+ru,6eji3	結果	1500	
+jp4wu6	問題	3000	
+z; 04	方案	900	work,formal
+y xul4	資料	1300	work
+jp6ru04	文件	1200	work
+u.6ru04	郵件	1100	work
+2u04cj84	電話	1500	
+g.3ru 	手機	1600	
+2u04sl3	電腦	1500	tech
+t/6g4	程式	1300	tech
+294a83	代碼	900	tech
+t/6vm4	程序	800	tech
+bj03wu3	軟體	1000	tech
+vu4wj/3	系統	1500	tech
+gj4rm4	數據	1100	tech
+c06gj4	函數	800	tech
+1u04gj4	變數	700	tech
+hk4g4	測試	1200	tech
+1u0 u4	編譯	600	tech
+ru84e.4	架構	700	tech
+ai6yj3	模組	600	tech
+t8 ru04	插件	500	tech
+gj bj4z83	輸入法	1200	tech
+bp6ej/ 54cjo4	人工智慧	900	tech
+54cjo4	智慧	900	tech
+m4hk4	預測	800	tech
+vm,6vu6	學習	1800	
+5 2l4	知道	3500	
+dk3u3	可以	4500	
+dk3s/6	可能	2500	
+u 2u/4	一定	2000	
+2; b06	當然	1800	
+u3ru/ 	已經	3000	
+c96g4	還是	3000	
+b06c.4	然後	3000	
+nji3u3	所以	3000	
+up jo4	因為	3000	
+204g4	但是	3000	
+bj6eji3	如果	2800	
+bj6ck6	如何	1300	formal
+gp6ak7	什麼	4000	
+yp3ak7	怎麼	3500	
+yp3ak7u;4	怎麼樣	1500	
+jo4gp6ak7	為什麼	2200	
+s83xu3	哪裡	1800	
+5k4xu3	這裡	1800	
+s84ek7	那個	2200	
+5k4ek7	這個	3000	
+5k4u;4	這樣	2500	
+u fu3	一起	2200	
+u 2u03	一點	2000	
+u vu84	一下	2500	casual
+u u;4	一樣	1800	
+zo t;6	非常	2000	
+5p 2k7	真的	3000	
+ao6u.3	沒有	4500	
+1j4ul4	不要	2500	
+1j4m/4	不用	1800	
+vm ul4	需要	2500	
+vu j;4	希望	2000	positive
+rm,62k7	覺得	2800	
+bp4jo6	認為	1800	formal
+vu;3ul4	想要	1500	
+5jp31o4	準備	1500	
+d9 g3	開始	2200	
+ru,6gj4	結束	1300	
+j06t/6	完成	1500	work
+fm,4bp4	確認	1200	work,formal
+wj/ 5 	通知	1100	work,formal
+h0 ru8 	參加	1100	
+cj0 u/6	歡迎	1300	positive,greeting
+fu/3jp4	請問	1500	formal
+a86z06	麻煩	1300	
+a86z06su3	麻煩你	800	formal
+vu,4vu,4sup6	謝謝您	1000	positive,formal
+ru/4fu35k3	敬啟者	400	formal
+h354ru/4xu3	此致敬禮	500	formal
+5j4cl3	祝好	600	formal
+gjp4xu4	順利	1000	positive
+t/6ej/ 	成功	1300	positive
+ao3wu0 	每天	1500	
+u ek7	一個	3500	
+5j/ eji6	中國	1800	
+w96j0 	台灣	1800	
+w961o3	台北	1200	
+g4ru,4	世界	1800	
+g/ cji6	生活	1800	
+2u04u/3	電影	1200	casual
+up m,4	音樂	1200	
+u.6vu4	遊戲	1200	casual
+xm3vu/6	旅行	900	positive
+vu;3su04	想念	800	
+vu;3su3	想你	900	casual
+cl32k7	好的	2500	
+cl387	好啊	1200	casual
+2jo487	對啊	1200	casual
+g4a87	是嗎	1000	casual
+5p 2k7a87	真的嗎	900	casual
+ao6jp4wu6	沒問題	1500	positive
+2; vup 	當心	300	
+t xk7a87	吃了嗎	700	casual,greeting
+yjo4rup4	最近	1800	
+yjo4rup4cl3a87	最近好嗎	700	greeting,casual
+vup dj3xk7	辛苦了	1100	positive
+vup dj3	辛苦	900	
+vu;3t 	想吃	800	casual
+cl3t 	好吃	1100	positive,casual
+cl3d04	好看	1000	positive
+2u03y04	點讚	500	positive,casual
+ru,6mp4	捷運	1200	
+ej/ tk 	公車	1000	
+ru tk 	機車	1000	
+el wu,3	高鐵	1000	
+w96wu,3	台鐵	900	
+u. u.6d83	悠遊卡	800	
+1u042; 	便當	1100	
+j94294	外帶	900	
+so4m/4	內用	900	
+tl g; 	超商	1000	
+z8 qul4	發票	1000	
+y94rm4	載具	700	
+w96j0 	臺灣	1200	
+w961o3	臺北	1000	
+vup 1o3	新北	900	
+wl6m06	桃園	900	
+vup 5j6	新竹	900	
+w965j/ 	台中	900	
+w96s06	台南	900	
+el vm/6	高雄	900	
+ru8 u4	嘉義	800	
+cj8 xu06	花蓮	800	
+w962j/ 	台東	800	
+u6x06	宜蘭	800	
+qu/62j/ 	屏東	800	
+ru xj/6	基隆	800	
+w965j/ 	臺中	800	
+w96s06	臺南	800	
+w962j/ 	臺東	700	

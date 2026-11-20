@@ -1,0 +1,6 @@
+/target
+/.senti-ime/
+
+__pycache__/
+
+/models/**/training-checkpoint.npz

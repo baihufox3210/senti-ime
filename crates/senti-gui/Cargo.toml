@@ -1,0 +1,24 @@
+[package]
+name = "senti-gui"
+description = "Interactive egui demo for SentiIME."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "senti-gui"
+path = "src/main.rs"
+
+[dependencies]
+senti-core.workspace = true
+senti-engine.workspace = true
+senti-app.workspace = true
+eframe.workspace = true
+
+[dev-dependencies]
+
+
+[lints]
+workspace = true

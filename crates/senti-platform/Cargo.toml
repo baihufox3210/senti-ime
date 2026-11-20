@@ -1,0 +1,21 @@
+[package]
+name = "senti-platform"
+description = "Portable native IME host and versioned stdio protocol for SentiIME."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+senti-core.workspace = true
+senti-engine.workspace = true
+senti-app.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

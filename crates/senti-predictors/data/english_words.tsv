@@ -1,0 +1,232 @@
+# Format: word<TAB>frequency[<TAB>tags]
+i	5000
+the	9000
+be	6000
+to	8000
+of	8000
+and	8000
+a	7000
+in	7000
+that	5000
+have	5000
+it	6000
+for	5000
+not	4000
+on	4500
+with	4500
+he	4000
+as	4000
+you	6000
+do	4000
+at	4000
+this	4500
+but	4000
+his	3500
+by	3500
+from	3500
+they	3500
+we	3800
+say	2500
+her	3000
+she	3000
+or	3500
+an	3500
+will	3500
+my	3500
+one	3200
+all	3200
+would	3000
+there	3000
+their	3000
+what	3500
+so	3300
+up	3000
+out	3000
+if	3200
+about	3000
+who	2800
+get	3000
+which	2500
+go	2800
+me	3200
+when	3000
+make	2600
+can	3500
+like	3000
+time	3000
+no	3000
+just	3000
+him	2500
+know	3000
+take	2300
+people	2600
+into	2300
+year	2300
+your	3200
+good	3000	positive
+some	2500
+could	2400
+them	2600
+see	2500
+other	2200
+than	2300
+then	2400
+now	2600
+look	2100
+only	2300
+come	2200
+its	2200
+over	2000
+think	2400
+also	2300
+back	2100
+after	2100
+use	2000
+two	2000
+how	2600
+our	2300
+work	2400	work
+first	2000
+well	2200
+way	2000
+even	1800
+new	2300
+want	2400
+because	2200
+any	1800
+these	1800
+give	1800
+day	2200
+most	1700
+us	2000
+is	4500
+are	4000
+was	4000
+were	3000
+been	2500
+has	2800
+had	2800
+did	2200
+does	2000
+am	2000
+hello	2500	greeting,casual
+hi	2400	greeting,casual
+hey	1800	greeting,casual
+dear	1500	formal,greeting
+regards	1200	formal
+sincerely	900	formal
+best	1800	positive
+thanks	2500	positive,casual
+thank	2300	positive
+please	2200	formal
+sorry	1800	negative
+happy	2000	positive
+great	2000	positive
+awesome	1200	positive,casual
+amazing	1100	positive
+love	2000	positive
+nice	1600	positive
+cool	1300	positive,casual
+glad	900	positive
+excited	800	positive
+wonderful	800	positive
+sad	1000	negative
+angry	700	negative
+tired	900	negative
+worried	600	negative
+upset	500	negative
+bad	1400	negative
+terrible	600	negative
+morning	1500	morning,greeting
+afternoon	900
+evening	900	evening
+night	1500	evening
+tonight	900	evening
+today	2000
+tomorrow	1500
+yesterday	1300
+weekend	1000	casual
+meeting	1400	work,formal
+schedule	900	work
+project	1300	work
+report	1100	work
+deadline	800	work
+team	1200	work
+email	1100	work
+office	900	work
+manager	800	work
+client	800	work,formal
+attached	600	work,formal
+regarding	600	formal,work
+appreciate	800	formal,positive
+available	900	work
+discuss	800	work
+confirm	800	work,formal
+update	1200	work,tech
+issue	1000	work,tech
+function	1100	tech
+variable	700	tech
+struct	600	tech
+string	900	tech
+vector	600	tech
+return	1000	tech
+compile	600	tech
+error	1100	tech
+debug	700	tech
+test	1200	tech
+async	500	tech
+trait	500	tech
+implement	700	tech
+interface	700	tech
+module	700	tech
+plugin	500	tech
+engine	700	tech
+predict	500	tech
+input	900	tech
+output	800	tech
+server	800	tech
+database	700	tech
+help	1800
+here	2200
+home	1500
+house	1000
+friend	1300	casual
+family	1100
+food	1100
+lunch	1000
+dinner	1000	evening
+breakfast	800	morning
+coffee	1000
+water	1000
+weather	900
+really	2000
+right	1900
+very	2000
+much	1900
+many	1600
+more	2200
+still	1700
+never	1500
+always	1500
+maybe	1300	casual
+sure	1400
+okay	1300	casual
+yes	1800
+yeah	1400	casual
+lol	800	casual
+let	1600
+let's	1100	casual
+need	1900
+feel	1500
+hope	1300	positive
+keep	1400
+try	1500
+call	1400
+going	1800
+doing	1300
+something	1500
+nothing	1100
+everything	1100
+everyone	1000
+world	1500
+life	1400

@@ -1,0 +1,138 @@
+# Authored Taiwan software/data/IME terms; CNS phonetic conversion. Frequency is a ranking seed, not measured corpus frequency.
+中央處理器	ㄓㄨㄥ ㄧㄤ ㄔㄨˇ ㄌㄧˇ ㄑㄧˋ	zhong'yang'chu'li'qi	0	500
+中文輸入	ㄓㄨㄥ ㄨㄣˊ ㄕㄨ ㄖㄨˋ	zhong'wen'shu'ru	0	500
+中英混打	ㄓㄨㄥ ㄧㄥ ㄏㄨㄣˋ ㄉㄚˇ	zhong'ying'hun'da	0	500
+作業系統	ㄗㄨㄛˋ ㄧㄝˋ ㄒㄧˋ ㄊㄨㄥˇ	zuo'ye'xi'tong	0	500
+使用者介面	ㄕˇ ㄩㄥˋ ㄓㄜˇ ㄐㄧㄝˋ ㄇㄧㄢˋ	shi'yong'zhe'jie'mian	0	500
+使用者體驗	ㄕˇ ㄩㄥˋ ㄓㄜˇ ㄊㄧˇ ㄧㄢˋ	shi'yong'zhe'ti'yan	0	500
+候選字	ㄏㄡˋ ㄒㄩㄢˇ ㄗˋ	hou'xuan'zi	0	500
+候選視窗	ㄏㄡˋ ㄒㄩㄢˇ ㄕˋ ㄔㄨㄤ	hou'xuan'shi'chuang	0	500
+候選詞	ㄏㄡˋ ㄒㄩㄢˇ ㄘˊ	hou'xuan'ci	0	500
+候選選單	ㄏㄡˋ ㄒㄩㄢˇ ㄒㄩㄢˇ ㄉㄢ	hou'xuan'xuan'dan	0	500
+全形	ㄑㄩㄢˊ ㄒㄧㄥˊ	quan'xing	0	500
+全形標點	ㄑㄩㄢˊ ㄒㄧㄥˊ ㄅㄧㄠ ㄉㄧㄢˇ	quan'xing'biao'dian	0	500
+分詞	ㄈㄣ ㄘˊ	fen'ci	0	500
+刪除字元	ㄕㄢ ㄔㄨˊ ㄗˋ ㄩㄢˊ	shan'chu'zi'yuan	0	500
+刪除文字	ㄕㄢ ㄔㄨˊ ㄨㄣˊ ㄗˋ	shan'chu'wen'zi	0	500
+刪除資料	ㄕㄢ ㄔㄨˊ ㄗ ㄌㄧㄠˋ	shan'chu'zi'liao	0	500
+前後文	ㄑㄧㄢˊ ㄏㄡˋ ㄨㄣˊ	qian'hou'wen	0	500
+半形	ㄅㄢˋ ㄒㄧㄥˊ	ban'xing	0	500
+原始碼	ㄩㄢˊ ㄕˇ ㄇㄚˇ	yuan'shi'ma	0	500
+反應速度	ㄈㄢˇ ㄧㄥˋ ㄙㄨˋ ㄉㄨˋ	fan'ying'su'du	0	500
+同音詞	ㄊㄨㄥˊ ㄧㄣ ㄘˊ	tong'yin'ci	0	500
+命令列	ㄇㄧㄥˋ ㄌㄧㄥˋ ㄌㄧㄝˋ	ming'ling'lie	0	500
+單元測試	ㄉㄢ ㄩㄢˊ ㄘㄜˋ ㄕˋ	dan'yuan'ce'shi	0	500
+回歸測試	ㄏㄨㄟˊ ㄍㄨㄟ ㄘㄜˋ ㄕˋ	hui'gui'ce'shi	0	500
+圖形處理器	ㄊㄨˊ ㄒㄧㄥˊ ㄔㄨˇ ㄌㄧˇ ㄑㄧˋ	tu'xing'chu'li'qi	0	500
+圖示	ㄊㄨˊ ㄕˋ	tu'shi	0	500
+執行緒	ㄓˊ ㄒㄧㄥˊ ㄒㄩˋ	zhi'xing'xu	0	500
+執行階段	ㄓˊ ㄒㄧㄥˊ ㄐㄧㄝ ㄉㄨㄢˋ	zhi'xing'jie'duan	0	500
+大型語言模型	ㄉㄚˋ ㄒㄧㄥˊ ㄩˇ ㄧㄢˊ ㄇㄛˊ ㄒㄧㄥˊ	da'xing'yu'yan'mo'xing	0	500
+套件管理	ㄊㄠˋ ㄐㄧㄢˋ ㄍㄨㄢˇ ㄌㄧˇ	tao'jian'guan'li	0	500
+字串	ㄗˋ ㄔㄨㄢˋ	zi'chuan	0	500
+字元	ㄗˋ ㄩㄢˊ	zi'yuan	0	500
+字型	ㄗˋ ㄒㄧㄥˊ	zi'xing	0	500
+字形	ㄗˋ ㄒㄧㄥˊ	zi'xing	0	500
+小型語言模型	ㄒㄧㄠˇ ㄒㄧㄥˊ ㄩˇ ㄧㄢˊ ㄇㄛˊ ㄒㄧㄥˊ	xiao'xing'yu'yan'mo'xing	0	500
+延遲	ㄧㄢˊ ㄔˊ	yan'chi	0	500
+建置	ㄐㄧㄢˋ ㄓˋ	jian'zhi	0	500
+快取	ㄎㄨㄞˋ ㄑㄩˇ	kuai'qu	0	500
+快捷鍵	ㄎㄨㄞˋ ㄐㄧㄝˊ ㄐㄧㄢˋ	kuai'jie'jian	0	500
+應用程式	ㄧㄥˋ ㄩㄥˋ ㄔㄥˊ ㄕˋ	ying'yong'cheng'shi	0	500
+拼字修正	ㄆㄧㄣ ㄗˋ ㄒㄧㄡ ㄓㄥˋ	pin'zi'xiu'zheng	0	500
+效能測試	ㄒㄧㄠˋ ㄋㄥˊ ㄘㄜˋ ㄕˋ	xiao'neng'ce'shi	0	500
+效能瓶頸	ㄒㄧㄠˋ ㄋㄥˊ ㄆㄧㄥˊ ㄐㄧㄥˇ	xiao'neng'ping'jing	0	500
+整合測試	ㄓㄥˇ ㄏㄜˊ ㄘㄜˋ ㄕˋ	zheng'he'ce'shi	0	500
+文字游標	ㄨㄣˊ ㄗˋ ㄧㄡˊ ㄅㄧㄠ	wen'zi'you'biao	0	500
+文字補全	ㄨㄣˊ ㄗˋ ㄅㄨˇ ㄑㄩㄢˊ	wen'zi'bu'quan	0	500
+斷詞	ㄉㄨㄢˋ ㄘˊ	duan'ci	0	500
+更新版本	ㄍㄥ ㄒㄧㄣ ㄅㄢˇ ㄅㄣˇ	geng'xin'ban'ben	0	500
+本機推論	ㄅㄣˇ ㄐㄧ ㄊㄨㄟ ㄌㄨㄣˋ	ben'ji'tui'lun	0	500
+桌面環境	ㄓㄨㄛ ㄇㄧㄢˋ ㄏㄨㄢˊ ㄐㄧㄥˋ	zhuo'mian'huan'jing	0	500
+標點符號	ㄅㄧㄠ ㄉㄧㄢˇ ㄈㄨˊ ㄏㄠˋ	biao'dian'fu'hao	0	500
+模型參數	ㄇㄛˊ ㄒㄧㄥˊ ㄘㄢ ㄕㄨˋ	mo'xing'can'shu	0	500
+模型大小	ㄇㄛˊ ㄒㄧㄥˊ ㄉㄚˋ ㄒㄧㄠˇ	mo'xing'da'xiao	0	500
+模型微調	ㄇㄛˊ ㄒㄧㄥˊ ㄨㄟˊ ㄊㄧㄠˊ	mo'xing'wei'tiao	0	500
+模型推論	ㄇㄛˊ ㄒㄧㄥˊ ㄊㄨㄟ ㄌㄨㄣˋ	mo'xing'tui'lun	0	500
+模型效能	ㄇㄛˊ ㄒㄧㄥˊ ㄒㄧㄠˋ ㄋㄥˊ	mo'xing'xiao'neng	0	500
+模型權重	ㄇㄛˊ ㄒㄧㄥˊ ㄑㄩㄢˊ ㄓㄨㄥˋ	mo'xing'quan'zhong	0	500
+模型訓練	ㄇㄛˊ ㄒㄧㄥˊ ㄒㄩㄣˋ ㄌㄧㄢˋ	mo'xing'xun'lian	0	500
+模型評估	ㄇㄛˊ ㄒㄧㄥˊ ㄆㄧㄥˊ ㄍㄨ	mo'xing'ping'gu	0	500
+模型部署	ㄇㄛˊ ㄒㄧㄥˊ ㄅㄨˋ ㄕㄨˋ	mo'xing'bu'shu	0	500
+模型量化	ㄇㄛˊ ㄒㄧㄥˊ ㄌㄧㄤˋ ㄏㄨㄚˋ	mo'xing'liang'hua	0	500
+機器學習	ㄐㄧ ㄑㄧˋ ㄒㄩㄝˊ ㄒㄧˊ	ji'qi'xue'xi	0	500
+注音輸入	ㄓㄨˋ ㄧㄣ ㄕㄨ ㄖㄨˋ	zhu'yin'shu'ru	0	500
+深度學習	ㄕㄣ ㄉㄨˋ ㄒㄩㄝˊ ㄒㄧˊ	shen'du'xue'xi	0	500
+測試集	ㄘㄜˋ ㄕˋ ㄐㄧˊ	ce'shi'ji	0	500
+游標位置	ㄧㄡˊ ㄅㄧㄠ ㄨㄟˋ ㄓˋ	you'biao'wei'zhi	0	500
+版本控制	ㄅㄢˇ ㄅㄣˇ ㄎㄨㄥˋ ㄓˋ	ban'ben'kong'zhi	0	500
+生成式模型	ㄕㄥ ㄔㄥˊ ㄕˋ ㄇㄛˊ ㄒㄧㄥˊ	sheng'cheng'shi'mo'xing	0	500
+相依套件	ㄒㄧㄤ ㄧ ㄊㄠˋ ㄐㄧㄢˋ	xiang'yi'tao'jian	0	500
+神經網路	ㄕㄣˊ ㄐㄧㄥ ㄨㄤˇ ㄌㄨˋ	shen'jing'wang'lu	0	500
+程式碼	ㄔㄥˊ ㄕˋ ㄇㄚˇ	cheng'shi'ma	0	500
+程式補全	ㄔㄥˊ ㄕˋ ㄅㄨˇ ㄑㄩㄢˊ	cheng'shi'bu'quan	0	500
+終端機	ㄓㄨㄥ ㄉㄨㄢ ㄐㄧ	zhong'duan'ji	0	500
+結果補語	ㄐㄧㄝˊ ㄍㄨㄛˇ ㄅㄨˇ ㄩˇ	jie'guo'bu'yu	0	500
+編譯	ㄅㄧㄢ ㄧˋ	bian'yi	0	500
+背景程序	ㄅㄟˋ ㄐㄧㄥˇ ㄔㄥˊ ㄒㄩˋ	bei'jing'cheng'xu	0	500
+自動修正	ㄗˋ ㄉㄨㄥˋ ㄒㄧㄡ ㄓㄥˋ	zi'dong'xiu'zheng	0	500
+自動補全	ㄗˋ ㄉㄨㄥˋ ㄅㄨˇ ㄑㄩㄢˊ	zi'dong'bu'quan	0	500
+自動選字	ㄗˋ ㄉㄨㄥˋ ㄒㄩㄢˇ ㄗˋ	zi'dong'xuan'zi	0	500
+英文輸入	ㄧㄥ ㄨㄣˊ ㄕㄨ ㄖㄨˋ	ying'wen'shu'ru	0	500
+處理程序	ㄔㄨˇ ㄌㄧˇ ㄔㄥˊ ㄒㄩˋ	chu'li'cheng'xu	0	500
+螢幕截圖	ㄧㄥˊ ㄇㄨˋ ㄐㄧㄝˊ ㄊㄨˊ	ying'mu'jie'tu	0	500
+補全	ㄅㄨˇ ㄑㄩㄢˊ	bu'quan	0	1400
+訓練語料	ㄒㄩㄣˋ ㄌㄧㄢˋ ㄩˇ ㄌㄧㄠˋ	xun'lian'yu'liao	0	500
+訓練資料	ㄒㄩㄣˋ ㄌㄧㄢˋ ㄗ ㄌㄧㄠˋ	xun'lian'zi'liao	0	500
+訓練集	ㄒㄩㄣˋ ㄌㄧㄢˋ ㄐㄧˊ	xun'lian'ji	0	500
+記憶體	ㄐㄧˋ ㄧˋ ㄊㄧˇ	ji'yi'ti	0	500
+設定檔	ㄕㄜˋ ㄉㄧㄥˋ ㄉㄤˇ	she'ding'dang	0	500
+設定選項	ㄕㄜˋ ㄉㄧㄥˋ ㄒㄩㄢˇ ㄒㄧㄤˋ	she'ding'xuan'xiang	0	500
+詞庫	ㄘˊ ㄎㄨˋ	ci'ku	0	500
+詞彙	ㄘˊ ㄏㄨㄟˋ	ci'hui	0	500
+詞語	ㄘˊ ㄩˇ	ci'yu	0	500
+詞頻	ㄘˊ ㄆㄧㄣˊ	ci'pin	0	500
+語境	ㄩˇ ㄐㄧㄥˋ	yu'jing	0	500
+語意理解	ㄩˇ ㄧˋ ㄌㄧˇ ㄐㄧㄝˇ	yu'yi'li'jie	0	500
+語料庫	ㄩˇ ㄌㄧㄠˋ ㄎㄨˋ	yu'liao'ku	0	500
+語言模型	ㄩˇ ㄧㄢˊ ㄇㄛˊ ㄒㄧㄥˊ	yu'yan'mo'xing	0	500
+資料來源	ㄗ ㄌㄧㄠˋ ㄌㄞˊ ㄩㄢˊ	zi'liao'lai'yuan	0	500
+資料備份	ㄗ ㄌㄧㄠˋ ㄅㄟˋ ㄈㄣˋ	zi'liao'bei'fen	0	500
+資料傳輸	ㄗ ㄌㄧㄠˋ ㄔㄨㄢˊ ㄕㄨ	zi'liao'chuan'shu	0	500
+資料儲存	ㄗ ㄌㄧㄠˋ ㄔㄨˊ ㄘㄨㄣˊ	zi'liao'chu'cun	0	500
+資料分析	ㄗ ㄌㄧㄠˋ ㄈㄣ ㄒㄧ	zi'liao'fen'xi	0	500
+資料匯入	ㄗ ㄌㄧㄠˋ ㄏㄨㄟˋ ㄖㄨˋ	zi'liao'hui'ru	0	500
+資料匯出	ㄗ ㄌㄧㄠˋ ㄏㄨㄟˋ ㄔㄨ	zi'liao'hui'chu	0	500
+資料同步	ㄗ ㄌㄧㄠˋ ㄊㄨㄥˊ ㄅㄨˋ	zi'liao'tong'bu	0	500
+資料品質	ㄗ ㄌㄧㄠˋ ㄆㄧㄣˇ ㄓˊ	zi'liao'pin'zhi	0	500
+資料庫	ㄗ ㄌㄧㄠˋ ㄎㄨˋ	zi'liao'ku	0	500
+資料更新	ㄗ ㄌㄧㄠˋ ㄍㄥ ㄒㄧㄣ	zi'liao'geng'xin	0	500
+資料格式	ㄗ ㄌㄧㄠˋ ㄍㄜˊ ㄕˋ	zi'liao'ge'shi	0	500
+資料標註	ㄗ ㄌㄧㄠˋ ㄅㄧㄠ ㄓㄨˋ	zi'liao'biao'zhu	0	500
+資料欄位	ㄗ ㄌㄧㄠˋ ㄌㄢˊ ㄨㄟˋ	zi'liao'lan'wei	0	500
+資料清理	ㄗ ㄌㄧㄠˋ ㄑㄧㄥ ㄌㄧˇ	zi'liao'qing'li	0	500
+資料處理	ㄗ ㄌㄧㄠˋ ㄔㄨˇ ㄌㄧˇ	zi'liao'chu'li	0	500
+資料表	ㄗ ㄌㄧㄠˋ ㄅㄧㄠˇ	zi'liao'biao	0	500
+資料視覺化	ㄗ ㄌㄧㄠˋ ㄕˋ ㄐㄩㄝˊ ㄏㄨㄚˋ	zi'liao'shi'jue'hua	0	500
+資料還原	ㄗ ㄌㄧㄠˋ ㄏㄨㄢˊ ㄩㄢˊ	zi'liao'huan'yuan	0	500
+資料集	ㄗ ㄌㄧㄠˋ ㄐㄧˊ	zi'liao'ji	0	1400
+軟體工程	ㄖㄨㄢˇ ㄊㄧˇ ㄍㄨㄥ ㄔㄥˊ	ruan'ti'gong'cheng	0	500
+輸入內容	ㄕㄨ ㄖㄨˋ ㄋㄟˋ ㄖㄨㄥˊ	shu'ru'nei'rong	0	500
+輸入框	ㄕㄨ ㄖㄨˋ ㄎㄨㄤ	shu'ru'kuang	0	500
+輸入欄位	ㄕㄨ ㄖㄨˋ ㄌㄢˊ ㄨㄟˋ	shu'ru'lan'wei	0	500
+輸入法	ㄕㄨ ㄖㄨˋ ㄈㄚˇ	shu'ru'fa	0	500
+輸入速度	ㄕㄨ ㄖㄨˋ ㄙㄨˋ ㄉㄨˋ	shu'ru'su'du	0	500
+輸入錯誤	ㄕㄨ ㄖㄨˋ ㄘㄨㄛˋ ㄨˋ	shu'ru'cuo'wu	0	500
+輸入順序	ㄕㄨ ㄖㄨˋ ㄕㄨㄣˋ ㄒㄩˋ	shu'ru'shun'xu	0	500
+選字	ㄒㄩㄢˇ ㄗˋ	xuan'zi	0	500
+重新啟動	ㄔㄨㄥˊ ㄒㄧㄣ ㄑㄧˇ ㄉㄨㄥˋ	chong'xin'qi'dong	0	500
+錯別字	ㄘㄨㄛˋ ㄅㄧㄝˊ ㄗˋ	cuo'bie'zi	0	500
+錯誤修正	ㄘㄨㄛˋ ㄨˋ ㄒㄧㄡ ㄓㄥˋ	cuo'wu'xiu'zheng	0	500
+錯誤訊息	ㄘㄨㄛˋ ㄨˋ ㄒㄩㄣˋ ㄒㄧˊ	cuo'wu'xun'xi	0	500
+鍵盤配置	ㄐㄧㄢˋ ㄆㄢˊ ㄆㄟˋ ㄓˋ	jian'pan'pei'zhi	0	500
+開放原始碼	ㄎㄞ ㄈㄤˋ ㄩㄢˊ ㄕˇ ㄇㄚˇ	kai'fang'yuan'shi'ma	0	500
+除錯	ㄔㄨˊ ㄘㄨㄛˋ	chu'cuo	0	500
+離線使用	ㄌㄧˊ ㄒㄧㄢˋ ㄕˇ ㄩㄥˋ	li'xian'shi'yong	0	500
+非同步	ㄈㄟ ㄊㄨㄥˊ ㄅㄨˋ	fei'tong'bu	0	500
+預選文字	ㄩˋ ㄒㄩㄢˇ ㄨㄣˊ ㄗˋ	yu'xuan'wen'zi	0	500
+驗證集	ㄧㄢˋ ㄓㄥˋ ㄐㄧˊ	yan'zheng'ji	0	500

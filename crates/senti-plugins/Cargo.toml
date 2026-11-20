@@ -1,0 +1,17 @@
+[package]
+name = "senti-plugins"
+description = "Built-in SentiIME plugins: emoji, date/time and calculator."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+senti-core.workspace = true
+
+[dev-dependencies]
+
+
+[lints]
+workspace = true

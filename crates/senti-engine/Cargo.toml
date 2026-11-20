@@ -1,0 +1,19 @@
+[package]
+name = "senti-engine"
+description = "The SentiIME input engine: composition state machine, ranking and plugin orchestration."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde.workspace = true
+senti-core.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+senti-storage.workspace = true
+
+[lints]
+workspace = true

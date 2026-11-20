@@ -1,0 +1,635 @@
+//! Tone-aware Zhuyin dictionary and unigram sentence decoding.
+use senti_core::{
+    Candidate, CandidateSource, InputMode, PredictionQuery, Predictor, Tag,
+    zhuyin::{self, Syllable},
+};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::sync::{Arc, Mutex, OnceLock};
+
+use crate::tsv::{LexiconError, records};
+
+#[derive(Debug, Clone)]
+struct Entry {
+    code: String,
+    syllables: Vec<Syllable>,
+    text: String,
+    frequency: u32,
+    tags: Vec<Tag>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ZhuyinPredictor {
+    data: Arc<Lexicon>,
+}
+#[derive(Debug)]
+struct Lexicon {
+    entries: Vec<Entry>,
+    by_prefix: HashMap<(String, usize), Vec<usize>>,
+    max_frequency: u32,
+    total_frequency: f64,
+    language_model: crate::language_model::LanguageModel,
+    cache: Mutex<VecDeque<(CacheKey, Vec<Candidate>)>>,
+}
+
+type CacheKey = (String, Option<String>, usize);
+
+impl Default for ZhuyinPredictor {
+    fn default() -> Self {
+        static DEFAULT: OnceLock<ZhuyinPredictor> = OnceLock::new();
+        DEFAULT
+            .get_or_init(|| {
+                Self::parse(&[crate::data::ZHUYIN_SEED, crate::data::ZHUYIN_EXTRA])
+                    .expect("embedded Zhuyin dictionary is validated by tests")
+            })
+            .clone()
+    }
+}
+
+impl ZhuyinPredictor {
+    /// Parse tone-aware ASCII Dachen codes without trimming first-tone spaces.
+    /// Duplicate (code, text) pairs retain their highest frequency and tags.
+    pub fn parse(sources: &[&str]) -> Result<Self, LexiconError> {
+        let mut entries: Vec<Entry> = Vec::new();
+        let mut seen: HashMap<(String, String), usize> = HashMap::new();
+        for source in sources {
+            for record in records(source) {
+                let code = record.fields.first().copied().unwrap_or_default();
+                let syllables = zhuyin::parse(code)
+                    .filter(|syllables| {
+                        !syllables.is_empty() && syllables.iter().all(|s| s.tone.is_some())
+                    })
+                    .ok_or_else(|| {
+                        LexiconError::new(record.line, "expected complete, tone-marked Zhuyin code")
+                    })?;
+                let text = record.field(1, "text")?;
+                if text.chars().count() != syllables.len() {
+                    return Err(LexiconError::new(
+                        record.line,
+                        "character and syllable counts differ",
+                    ));
+                }
+                let frequency = record.number(2, "frequency")?;
+                if frequency == 0 {
+                    return Err(LexiconError::new(record.line, "frequency must be positive"));
+                }
+                let tags = record.tags(3)?;
+                let key = (code.to_owned(), text.to_owned());
+                if let Some(&index) = seen.get(&key) {
+                    let existing = &mut entries[index];
+                    existing.frequency = existing.frequency.max(frequency);
+                    for tag in tags {
+                        if !existing.tags.contains(&tag) {
+                            existing.tags.push(tag);
+                        }
+                    }
+                } else {
+                    seen.insert(key, entries.len());
+                    entries.push(Entry {
+                        code: code.to_owned(),
+                        syllables,
+                        text: text.to_owned(),
+                        frequency,
+                        tags,
+                    });
+                }
+            }
+        }
+        let mut by_prefix: HashMap<(String, usize), Vec<usize>> = HashMap::new();
+        for (index, entry) in entries.iter().enumerate() {
+            let keys = &entry.syllables[0].keys;
+            for length in 1..=keys.len() {
+                by_prefix
+                    .entry((keys[..length].to_owned(), entry.syllables.len()))
+                    .or_default()
+                    .push(index);
+            }
+            by_prefix
+                .entry((
+                    entry.code[..entry.syllables[0].end].to_owned(),
+                    entry.syllables.len(),
+                ))
+                .or_default()
+                .push(index);
+        }
+        let language_model = crate::language_model::LanguageModel::train(
+            entries.iter().map(|e| (e.text.as_str(), e.frequency)),
+        );
+        Ok(Self {
+            data: Arc::new(Lexicon {
+                cache: Mutex::new(VecDeque::new()),
+                language_model,
+                max_frequency: entries.iter().map(|e| e.frequency).max().unwrap_or(1),
+                total_frequency: entries.iter().map(|e| f64::from(e.frequency) + 1.0).sum(),
+                entries,
+                by_prefix,
+            }),
+        })
+    }
+
+    fn matches_at<'a>(
+        &'a self,
+        syllables: &'a [Syllable],
+    ) -> impl Iterator<Item = (usize, &'a Entry)> {
+        let prefix = syllables.first().map_or(String::new(), |s| {
+            if let Some(tone) = s.tone {
+                format!(
+                    "{}{}",
+                    s.keys,
+                    match tone {
+                        1 => ' ',
+                        2 => '6',
+                        3 => '3',
+                        4 => '4',
+                        _ => '7',
+                    }
+                )
+            } else {
+                s.keys.clone()
+            }
+        });
+        (1..=syllables.len())
+            .flat_map(move |length| {
+                self.data
+                    .by_prefix
+                    .get(&(prefix.clone(), length))
+                    .into_iter()
+                    .flatten()
+            })
+            .map(|&index| (index, &self.data.entries[index]))
+            .filter(move |(_, entry)| Self::matches(entry, syllables))
+    }
+
+    fn matches(entry: &Entry, syllables: &[Syllable]) -> bool {
+        entry.syllables.len() <= syllables.len()
+            && entry.syllables.iter().zip(syllables).all(|(known, typed)| {
+                if let Some(tone) = typed.tone {
+                    known.keys == typed.keys && known.tone == Some(tone)
+                } else {
+                    known.keys.starts_with(&typed.keys)
+                }
+            })
+    }
+
+    fn weight(&self, entry: &Entry) -> f64 {
+        crate::log_weight(entry.frequency, self.data.max_frequency)
+    }
+}
+
+impl Predictor for ZhuyinPredictor {
+    fn id(&self) -> &'static str {
+        "zhuyin"
+    }
+
+    fn has_word_continuation(&self, mode: InputMode, input: &str, max_syllables: usize) -> bool {
+        if mode != InputMode::Zhuyin {
+            return false;
+        }
+        let Some(syllables) = zhuyin::parse_tolerant(input).filter(|s| !s.is_empty()) else {
+            return false;
+        };
+        let first = &syllables[0];
+        let mut prefix = first.keys.clone();
+        if let Some(tone) = first.tone {
+            prefix.push(match tone {
+                1 => ' ',
+                2 => '6',
+                3 => '3',
+                4 => '4',
+                _ => '7',
+            });
+        }
+        (syllables.len() + 1..=max_syllables).any(|length| {
+            self.data
+                .by_prefix
+                .get(&(prefix.clone(), length))
+                .into_iter()
+                .flatten()
+                .any(|&index| {
+                    self.data.entries[index]
+                        .syllables
+                        .iter()
+                        .zip(&syllables)
+                        .all(|(known, typed)| {
+                            if let Some(tone) = typed.tone {
+                                known.keys == typed.keys && known.tone == Some(tone)
+                            } else {
+                                known.keys.starts_with(&typed.keys)
+                            }
+                        })
+                })
+        })
+    }
+
+    fn context_score(&self, previous: Option<&str>, text: &str, next: Option<&str>) -> f64 {
+        let left = self.data.language_model.score(previous, text);
+        let right = next
+            .and_then(|next| next.chars().next())
+            .map_or(0.0, |next| {
+                self.data
+                    .language_model
+                    .lift(text.chars().next_back(), next)
+            });
+        0.035 * (left + right).clamp(-2.0, 2.0)
+    }
+
+    fn predict(&self, query: &PredictionQuery<'_>) -> Vec<Candidate> {
+        if query.mode != InputMode::Zhuyin || query.input.is_empty() {
+            return Vec::new();
+        }
+        let cache_key = (
+            query.input.to_owned(),
+            query.previous.map(str::to_owned),
+            query.limit,
+        );
+        if let Ok(cache) = self.data.cache.lock() {
+            if let Some((_, candidates)) = cache.iter().find(|(key, _)| *key == cache_key) {
+                return candidates.clone();
+            }
+        }
+        let Some(syllables) = zhuyin::parse_tolerant(query.input) else {
+            return Vec::new();
+        };
+        if syllables.is_empty() {
+            return Vec::new();
+        }
+        let mut candidates = Vec::new();
+        for (_, entry) in self.matches_at(&syllables) {
+            let n = entry.syllables.len();
+            let consumed = syllables[n - 1].end;
+            let full = n == syllables.len();
+            let score = 0.035
+                * self
+                    .data
+                    .language_model
+                    .score(query.previous, &entry.text)
+                    .clamp(-2.0, 2.0)
+                + 0.5 * n as f64 / syllables.len() as f64
+                + 0.4 * self.weight(entry)
+                + if full { 0.6 } else { 0.0 };
+            candidates.push(
+                Candidate::new(&entry.text, consumed, score, CandidateSource::Lexicon)
+                    .with_tags(entry.tags.iter().copied())
+                    .with_annotation(zhuyin::display(&entry.code)),
+            );
+        }
+        // Bounded beam search retains competing homophones until subsequent
+        // characters can disambiguate them. Scores combine word frequency and
+        // a trained character language model; no remote inference is involved.
+        #[derive(Clone)]
+        struct Path {
+            log_probability: f64,
+            text: String,
+            weight: f64,
+            words: usize,
+        }
+        let n = syllables.len();
+        let mut beams: Vec<Vec<Path>> = vec![Vec::new(); n + 1];
+        beams[0].push(Path {
+            log_probability: 0.0,
+            text: String::new(),
+            weight: 0.0,
+            words: 0,
+        });
+        for i in 0..if n > 1 { n } else { 0 } {
+            for path in beams[i].clone() {
+                for (_, entry) in self.matches_at(&syllables[i..]) {
+                    let j = i + entry.syllables.len();
+                    let previous = if path.text.is_empty() {
+                        query.previous
+                    } else {
+                        Some(path.text.as_str())
+                    };
+                    let log_probability = path.log_probability
+                        + ((f64::from(entry.frequency) + 1.0) / self.data.total_frequency).ln()
+                        + 0.45 * self.data.language_model.score(previous, &entry.text);
+                    let next = Path {
+                        log_probability,
+                        text: format!("{}{}", path.text, entry.text),
+                        weight: path.weight + self.weight(entry),
+                        words: path.words + 1,
+                    };
+                    let beam = &mut beams[j];
+                    if let Some(old) = beam.iter_mut().find(|old| old.text == next.text) {
+                        if old.log_probability < next.log_probability {
+                            *old = next;
+                        }
+                    } else {
+                        beam.push(next);
+                    }
+                    beam.sort_by(|a, b| {
+                        b.log_probability
+                            .total_cmp(&a.log_probability)
+                            .then_with(|| a.text.cmp(&b.text))
+                    });
+                    beam.truncate(6);
+                }
+            }
+        }
+        let best_word = candidates
+            .iter()
+            .filter(|c| c.consumed == query.input.len())
+            .map(|c| c.score)
+            .max_by(f64::total_cmp);
+        let mut finals: Vec<_> = beams[n].iter().collect();
+        if n > 1 {
+            finals.sort_by(|a, b| {
+                let score = |path: &Path| {
+                    path.log_probability
+                        + 0.35
+                            * n as f64
+                            * crate::NeuralPredictor::sequence_score(query.previous, &path.text)
+                };
+                score(b).total_cmp(&score(a))
+            });
+        }
+        for path in finals.into_iter().take(1) {
+            if path.words > 1 {
+                let score = 1.05
+                    + 0.3 * path.weight / path.words as f64
+                    + 0.12 * self.data.language_model.score(query.previous, &path.text);
+                let score = best_word.map_or(score, |word| score.min(word - 0.025));
+                candidates.push(
+                    Candidate::new(
+                        &path.text,
+                        query.input.len(),
+                        score,
+                        CandidateSource::Sentence,
+                    )
+                    .with_annotation(zhuyin::display(query.input)),
+                );
+            }
+        }
+        candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
+        let mut seen = HashSet::new();
+        candidates.retain(|c| seen.insert((c.text.clone(), c.consumed)));
+        candidates.truncate(query.limit.max(1));
+        if let Ok(mut cache) = self.data.cache.lock() {
+            if cache.len() >= 128 {
+                cache.pop_front();
+            }
+            cache.push_back((cache_key, candidates.clone()));
+        }
+        candidates
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use senti_core::{InputContext, UserModel};
+
+    fn predict(input: &str) -> Vec<Candidate> {
+        ZhuyinPredictor::default().predict(&PredictionQuery {
+            input,
+            mode: InputMode::Zhuyin,
+            context: &InputContext::default(),
+            previous: None,
+            user: &UserModel::default(),
+            limit: 100,
+        })
+    }
+
+    #[test]
+    fn bundled_dictionary_has_valid_tones_and_character_counts() {
+        let predictor = ZhuyinPredictor::default();
+        assert!(predictor.data.entries.len() >= 2000);
+        for entry in &predictor.data.entries {
+            assert_eq!(
+                entry.syllables.len(),
+                entry.text.chars().count(),
+                "{}",
+                entry.text
+            );
+            assert!(entry.syllables.iter().all(|s| s.tone.is_some()));
+        }
+    }
+
+    #[test]
+    fn phrases_sentences_and_partial_input() {
+        assert_eq!(predict("su3cl3")[0].text, "你好");
+        assert!(predict("su3cl").iter().any(|c| c.text == "你好"));
+        assert_eq!(predict("ji3vu;3t z04")[0].text, "我想吃飯");
+        let candidates = predict("su3cl3a87");
+        assert!(
+            candidates
+                .iter()
+                .any(|c| c.text == "你好" && c.consumed == 6)
+        );
+        assert!(predict("su3").iter().any(|c| c.text == "你"));
+        assert!(!predict("su4").iter().any(|c| c.text == "你"));
+        assert!(predict("a87").iter().any(|c| c.text == "嗎"));
+    }
+
+    #[test]
+    fn minimum_size_counts_distinct_phrases_not_reading_variants() {
+        let predictor = ZhuyinPredictor::default();
+        let phrases: HashSet<_> = predictor
+            .data
+            .entries
+            .iter()
+            .filter(|entry| entry.text.chars().count() >= 2)
+            .map(|entry| entry.text.as_str())
+            .collect();
+        assert!(
+            phrases.len() >= 2500,
+            "only {} distinct phrases",
+            phrases.len()
+        );
+        let pairs: HashSet<_> = predictor
+            .data
+            .entries
+            .iter()
+            .map(|entry| (&entry.code, &entry.text))
+            .collect();
+        assert_eq!(pairs.len(), predictor.data.entries.len());
+    }
+
+    #[test]
+    fn every_phrase_is_reachable_with_the_normal_candidate_limit() {
+        let predictor = ZhuyinPredictor::default();
+        let context = InputContext::default();
+        let user = UserModel::default();
+        for entry in predictor
+            .data
+            .entries
+            .iter()
+            .filter(|entry| entry.syllables.len() > 1)
+        {
+            let candidates = predictor.predict(&PredictionQuery {
+                input: &entry.code,
+                mode: InputMode::Zhuyin,
+                context: &context,
+                previous: None,
+                user: &user,
+                limit: 40,
+            });
+            assert!(
+                candidates
+                    .iter()
+                    .any(|c| c.text == entry.text && c.consumed == entry.code.len()),
+                "phrase is not selectable: {} ({})",
+                entry.text,
+                zhuyin::display(&entry.code)
+            );
+        }
+    }
+
+    #[test]
+    fn indexed_matching_preserves_full_scan_results() {
+        let predictor = ZhuyinPredictor::default();
+        for entry in predictor.data.entries.iter().step_by(31) {
+            // Exercise full codes, unfinished final syllables and first-syllable lookup.
+            for input in [entry.code.as_str(), &entry.code[..entry.code.len() - 1]] {
+                let syllables = zhuyin::parse(input).unwrap();
+                for typed in [&syllables[..], &syllables[..syllables.len().min(1)]] {
+                    let mut indexed: Vec<_> = predictor
+                        .matches_at(typed)
+                        .map(|(index, _)| index)
+                        .collect();
+                    let scanned: Vec<_> = predictor
+                        .data
+                        .entries
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, entry)| ZhuyinPredictor::matches(entry, typed))
+                        .map(|(index, _)| index)
+                        .collect();
+                    indexed.sort_unstable();
+                    assert_eq!(indexed, scanned, "{input}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn every_attested_phrase_beats_unattested_character_assembly() {
+        let predictor = ZhuyinPredictor::default();
+        let mut groups: HashMap<&str, HashSet<&str>> = HashMap::new();
+        for entry in &predictor.data.entries {
+            if entry.syllables.len() >= 2 {
+                groups.entry(&entry.code).or_default().insert(&entry.text);
+            }
+        }
+        let context = InputContext::default();
+        let user = UserModel::default();
+        for (code, words) in groups {
+            let candidates = predictor.predict(&PredictionQuery {
+                input: code,
+                mode: InputMode::Zhuyin,
+                context: &context,
+                previous: None,
+                user: &user,
+                limit: 40,
+            });
+            assert!(
+                words.contains(candidates[0].text.as_str()),
+                "assembled noise outranks whole word: {code:?} => {}",
+                candidates[0].text
+            );
+        }
+    }
+
+    #[test]
+    fn expanded_single_characters_remain_reachable_in_native_candidate_budget() {
+        let predictor = ZhuyinPredictor::default();
+        let mut groups: HashMap<&str, HashSet<&str>> = HashMap::new();
+        for entry in &predictor.data.entries {
+            if entry.text.chars().count() == 1 {
+                groups.entry(&entry.code).or_default().insert(&entry.text);
+            }
+        }
+        let context = InputContext::default();
+        let user = UserModel::default();
+        for (code, expected) in groups {
+            let actual: HashSet<String> = predictor
+                .predict(&PredictionQuery {
+                    input: code,
+                    mode: InputMode::Zhuyin,
+                    context: &context,
+                    previous: None,
+                    user: &user,
+                    limit: 256,
+                })
+                .into_iter()
+                .map(|c| c.text)
+                .collect();
+            for character in expected {
+                assert!(
+                    actual.contains(character),
+                    "unreachable character {character} ({code:?})"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn local_language_model_uses_context_to_disambiguate_homophones() {
+        let predictor =
+            ZhuyinPredictor::parse(&["su3\t妳\t100\nsu3\t你\t100\ncl3su3\t好你\t1000\n"]).unwrap();
+        let context = senti_core::InputContext::default();
+        let user = senti_core::UserModel::default();
+        let query = PredictionQuery {
+            input: "su3",
+            mode: InputMode::Zhuyin,
+            context: &context,
+            previous: None,
+            user: &user,
+            limit: 10,
+        };
+        assert_eq!(predictor.predict(&query)[0].text, "妳");
+        assert_eq!(
+            predictor.predict(&PredictionQuery {
+                previous: Some("好"),
+                ..query
+            })[0]
+                .text,
+            "你"
+        );
+    }
+
+    #[test]
+    fn cached_sentence_decoding_distinguishes_contexts_with_the_same_last_character() {
+        let p = ZhuyinPredictor::parse(&[
+            "j06\t完\t5\n",
+            "j06\t玩\t4\n",
+            "jp6\t文\t5\n",
+            "y4\t字\t5\n",
+        ])
+        .unwrap();
+        let context = InputContext::default();
+        let user = UserModel::default();
+        for previous in ["補全的", "孩子的"] {
+            p.predict(&PredictionQuery {
+                input: "j06jp6y4",
+                mode: InputMode::Zhuyin,
+                context: &context,
+                previous: Some(previous),
+                user: &user,
+                limit: 40,
+            });
+        }
+        let cache = p.data.cache.lock().unwrap();
+        assert_eq!(cache.len(), 2);
+        assert_ne!(cache[0].0, cache[1].0);
+    }
+
+    #[test]
+    fn dictionary_parser_preserves_first_tones_and_reports_invalid_rows() {
+        let predictor =
+            ZhuyinPredictor::parse(&["a8 \t媽\t5\tcasual\n", "a8 \t媽\t9\tpositive\n"]).unwrap();
+        assert_eq!(predictor.data.entries.len(), 1);
+        assert_eq!(predictor.data.entries[0].code, "a8 ");
+        assert_eq!(predictor.data.entries[0].frequency, 9);
+        assert_eq!(predictor.data.entries[0].tags, [Tag::Casual, Tag::Positive]);
+        for row in [
+            "su\t你\t1",
+            "su3\t你好\t1",
+            "su3\t你\t0",
+            "su3\t你\t1\tunknown",
+            "bad",
+        ] {
+            let error = ZhuyinPredictor::parse(&[&format!("# header\n{row}\n")]).unwrap_err();
+            assert_eq!(error.line, 2, "{row}");
+        }
+    }
+}
