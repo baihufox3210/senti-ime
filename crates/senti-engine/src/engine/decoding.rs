@@ -102,7 +102,7 @@ impl InputEngine {
                     };
                 if let Some(top) = candidates.into_iter().find(|c| {
                     c.input_mode == Some(InputMode::Zhuyin)
-                        && c.source.is_learnable()
+                        && (c.source.is_learnable() || c.source == CandidateSource::ToneCorrection)
                         && c.consumed > 0
                         && c.consumed <= end
                 }) {
@@ -112,7 +112,7 @@ impl InputEngine {
                         InputMode::Zhuyin,
                         top.source.label().to_owned(),
                         true,
-                        true,
+                        top.source.is_learnable(),
                     )
                 } else {
                     let text = if self.mode == InputMode::Mixed {

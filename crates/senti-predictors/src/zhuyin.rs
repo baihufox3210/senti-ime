@@ -170,6 +170,62 @@ impl ZhuyinPredictor {
             })
     }
 
+    /// In a degree-complement position, consider a strongly attested two-character
+    /// word that differs by one tone. Elsewhere the explicit tones win.
+    fn degree_tone_alternative(
+        &self,
+        syllables: &[Syllable],
+        previous: Option<&str>,
+        exact: &str,
+    ) -> Option<(String, String)> {
+        if !(2..=6).contains(&syllables.len()) || syllables.iter().any(|s| s.tone.is_none()) {
+            return None;
+        }
+        let chars: Vec<_> = exact.chars().collect();
+        if chars.len() != syllables.len() {
+            return None;
+        }
+        let split = chars.len() - 2;
+        let prefix: String = chars[..split].iter().collect();
+        let before = format!("{}{prefix}", previous.unwrap_or(""));
+        if !["不夠", "足夠", "十分", "相當", "比較", "更加"]
+            .iter()
+            .any(|cue| before.ends_with(cue))
+        {
+            return None;
+        }
+
+        let typed = &syllables[split..];
+        let exact_word: String = chars[split..].iter().collect();
+        let exact_frequency = self
+            .matches_at(typed)
+            .filter(|(_, entry)| entry.syllables.len() == 2)
+            .map(|(_, entry)| entry.frequency)
+            .max()
+            .unwrap_or(1);
+        let entries = self.data.by_prefix.get(&(typed[0].keys.clone(), 2))?;
+        let entry = entries
+            .iter()
+            .map(|&id| &self.data.entries[id])
+            .filter(|e| {
+                e.text != exact_word
+                    && e.frequency >= 100
+                    && e.frequency >= exact_frequency.saturating_mul(8)
+                    && e.syllables.iter().zip(typed).all(|(a, b)| a.keys == b.keys)
+                    && e.syllables
+                        .iter()
+                        .zip(typed)
+                        .filter(|(a, b)| a.tone != b.tone)
+                        .count()
+                        == 1
+            })
+            .max_by_key(|e| e.frequency)?;
+        Some((
+            format!("{prefix}{}", entry.text),
+            zhuyin::display(&entry.code),
+        ))
+    }
+
     fn weight(&self, entry: &Entry) -> f64 {
         crate::log_weight(entry.frequency, self.data.max_frequency)
     }
@@ -356,6 +412,25 @@ impl Predictor for ZhuyinPredictor {
                         CandidateSource::Sentence,
                     )
                     .with_annotation(zhuyin::display(query.input)),
+                );
+            }
+        }
+        if let Some(exact) = candidates
+            .iter()
+            .filter(|c| c.consumed == query.input.len())
+            .max_by(|a, b| a.score.total_cmp(&b.score))
+        {
+            if let Some((text, reading)) =
+                self.degree_tone_alternative(&syllables, query.previous, &exact.text)
+            {
+                candidates.push(
+                    Candidate::new(
+                        text,
+                        query.input.len(),
+                        exact.score + 0.24,
+                        CandidateSource::ToneCorrection,
+                    )
+                    .with_annotation(format!("聲調修正 · {reading}")),
                 );
             }
         }

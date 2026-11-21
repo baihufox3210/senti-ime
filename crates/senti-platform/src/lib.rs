@@ -418,7 +418,11 @@ impl PlatformHost {
                     .select_native_candidate(view.candidate_cursor + 1);
             }
         }
-        if view.composing && key == PlatformKey::Space && view.candidates.is_empty() {
+        if view.composing
+            && key == PlatformKey::Space
+            && view.candidates.is_empty()
+            && !view.mode.uses_candidate_selection()
+        {
             return self.engine.handle_key(KeyEvent::Enter);
         }
         if view.composing {

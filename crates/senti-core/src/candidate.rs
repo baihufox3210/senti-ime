@@ -73,6 +73,8 @@ pub enum CandidateSource {
     Lexicon,
     /// A multi-word conversion assembled by a predictor.
     Sentence,
+    /// A contextual conversion that differs from the typed tones.
+    ToneCorrection,
     /// Something the user typed before.
     UserHistory,
     /// Next-word prediction after a commit.
@@ -92,6 +94,7 @@ impl CandidateSource {
         match self {
             CandidateSource::Lexicon => "lexicon",
             CandidateSource::Sentence => "sentence",
+            CandidateSource::ToneCorrection => "tone_correction",
             CandidateSource::UserHistory => "learned",
             CandidateSource::Association => "next",
             CandidateSource::Context => "context",
@@ -106,7 +109,10 @@ impl CandidateSource {
     pub fn is_learnable(&self) -> bool {
         !matches!(
             self,
-            CandidateSource::Plugin(_) | CandidateSource::Raw | CandidateSource::Context
+            CandidateSource::Plugin(_)
+                | CandidateSource::Raw
+                | CandidateSource::Context
+                | CandidateSource::ToneCorrection
         )
     }
 }

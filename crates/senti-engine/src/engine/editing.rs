@@ -134,6 +134,7 @@ impl InputEngine {
             );
             for unit in &mut units[start..] {
                 unit.confirmed = selection.confirmed;
+                unit.learnable &= selection.learnable;
             }
         }
         let raw = self.composition.remaining();
@@ -145,6 +146,18 @@ impl InputEngine {
             self.mode,
             &mut units,
         );
+        let mut offset = 0;
+        for unit in &mut units {
+            let end = offset + unit.raw.len();
+            if self.decoded.segments.iter().any(|segment| {
+                segment.source == CandidateSource::ToneCorrection.label()
+                    && segment.raw_start < end
+                    && segment.raw_end > offset
+            }) {
+                unit.learnable = false;
+            }
+            offset = end;
+        }
         let cursor = units.len();
         self.editor = Some(Editor {
             units,

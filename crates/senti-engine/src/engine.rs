@@ -346,8 +346,11 @@ impl InputEngine {
                 self.push_zhuyin(' ');
                 KeyOutcome::Consumed
             }
-            KeyEvent::Char(c) if zhuyin::symbol(c).is_some() || zhuyin::tone(c).is_some() => {
-                self.push_zhuyin(c);
+            KeyEvent::Char(c)
+                if zhuyin::symbol(c.to_ascii_lowercase()).is_some()
+                    || zhuyin::tone(c).is_some() =>
+            {
+                self.push_zhuyin(c.to_ascii_lowercase());
                 KeyOutcome::Consumed
             }
             KeyEvent::Char(c) if full_width(c).is_some() => {
@@ -926,7 +929,7 @@ impl InputEngine {
             })
             .map(|c| c.text.clone())
             .collect();
-        lexical_words.extend(trusted_memory);
+        lexical_words.extend(trusted_memory.iter().cloned());
         dedupe(&mut candidates);
         self.ranker.rank(&query, &mut candidates);
         if self.memory_enabled() && self.memory.profile != "default" {
@@ -989,6 +992,37 @@ impl InputEngine {
                             ))
                     {
                         candidate.score = candidate.score.min(best - 0.025);
+                    }
+                }
+            }
+        }
+        // An automatic commit in a different sentence is not evidence against
+        // a contextual tone repair. Explicit choices still take precedence.
+        if mode == InputMode::Zhuyin
+            && candidates
+                .iter()
+                .any(|c| c.source == CandidateSource::ToneCorrection)
+        {
+            let code = code_for(mode, input);
+            let explicit = candidates.iter().any(|c| {
+                c.consumed == input.len()
+                    && (self.user.confirmation_count(mode, &code, &c.text) > 0
+                        || trusted_memory.contains(&c.text))
+            });
+            if !explicit {
+                let best = candidates
+                    .iter()
+                    .filter(|c| {
+                        c.consumed == input.len() && c.source != CandidateSource::ToneCorrection
+                    })
+                    .map(|c| c.score)
+                    .max_by(f64::total_cmp);
+                if let Some(best) = best {
+                    for candidate in candidates
+                        .iter_mut()
+                        .filter(|c| c.source == CandidateSource::ToneCorrection)
+                    {
+                        candidate.score = candidate.score.max(best + 0.025);
                     }
                 }
             }

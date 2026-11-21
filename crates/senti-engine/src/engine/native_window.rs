@@ -8,7 +8,7 @@ impl InputEngine {
         }
         let mut start = selections
             .iter()
-            .rposition(|s| s.confirmed || s.input_mode != Some(InputMode::Zhuyin))
+            .rposition(|s| s.confirmed || !s.learnable || s.input_mode != Some(InputMode::Zhuyin))
             .map_or(0, |index| index + 1);
         if start == selections.len() {
             return;
@@ -51,7 +51,11 @@ impl InputEngine {
             .iter()
             .filter(|p| p.id() == "zhuyin")
             .flat_map(|p| p.predict(&query))
-            .find(|c| c.consumed == raw.len() && c.text.chars().count() == syllables.len());
+            .find(|c| {
+                c.source != CandidateSource::ToneCorrection
+                    && c.consumed == raw.len()
+                    && c.text.chars().count() == syllables.len()
+            });
         if let Some(candidate) = candidate {
             if self
                 .composition
@@ -117,6 +121,15 @@ impl InputEngine {
             }
         }
         let mut cut = syllables[count - keep - 1].end;
+        // A tone correction must retain its evidence and raw span together.
+        if self
+            .decoded
+            .segments
+            .iter()
+            .any(|s| s.source == CandidateSource::ToneCorrection.label())
+        {
+            return;
+        }
         // Do not freeze just the first character of a known prefix word.
         // For 世界你, freeze 世界 and correct 你, rather than freeze 世 and
         // re-decode 界你 independently with a different homophone.

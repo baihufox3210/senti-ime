@@ -244,7 +244,52 @@ impl InputEngine {
         }
         self.association_active = false;
         self.composition.push(c);
-        self.select_mixed_prefix();
+        if !self.preserve_chinese_before_invalid_tail() {
+            self.select_mixed_prefix();
+        }
+    }
+
+    /// An invalid new syllable cannot revoke a Chinese span already shown.
+    /// Keep it editable and retain its raw keys for Ctrl+Enter.
+    fn preserve_chinese_before_invalid_tail(&mut self) -> bool {
+        let raw = self.composition.remaining();
+        if raw.bytes().all(|b| b.is_ascii_digit()) || zhuyin::parse_tolerant(raw).is_some() {
+            return false;
+        }
+        let start = self.composition.len() - self.composition.remaining().len();
+        let mut end = start;
+        for segment in self
+            .decoded
+            .segments
+            .iter()
+            .filter(|s| s.raw_start >= start)
+        {
+            if segment.raw_start != end || segment.mode != InputMode::Zhuyin || !segment.complete {
+                break;
+            }
+            end = segment.raw_end;
+        }
+        if end == start {
+            return false;
+        }
+        let Some(prefix) = self.decoded.prefix_before(end) else {
+            return false;
+        };
+        let selected = self.composition.selected_text();
+        let Some(text) = prefix.strip_prefix(&selected) else {
+            return false;
+        };
+        self.composition.select_with_mode(
+            end - start,
+            text.to_owned(),
+            self.decoded
+                .segments
+                .iter()
+                .filter(|s| s.raw_start >= start && s.raw_end <= end)
+                .all(|s| s.learnable),
+            Some(InputMode::Zhuyin),
+        );
+        true
     }
 
     /// Lock an unambiguous prefix when a contiguous stream changes scripts.
