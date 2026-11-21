@@ -146,6 +146,14 @@ int main(int argc, char **argv) {
         type(engine, zhuyinEntry, phonetic, "su3cl3");
         check(phonetic.inputPanel().clientPreedit().toString() == "你好",
               "explicit Zhuyin entry cannot input Chinese");
+        key(engine, zhuyinEntry, phonetic, FcitxKey_Return);
+        check(phonetic.committed == "你好", "explicit Zhuyin could not commit");
+        type(engine, zhuyinEntry, phonetic, "D9 VUP ");
+        check(phonetic.inputPanel().clientPreedit().toString() == "開心",
+              "uppercase keys or first-tone space broke explicit Zhuyin");
+        key(engine, zhuyinEntry, phonetic, FcitxKey_Return);
+        check(phonetic.committed == "你好開心",
+              "first-tone Zhuyin failed to commit");
         engine->deactivate(zhuyinEntry, focus);
       }
       {
@@ -175,6 +183,27 @@ int main(int argc, char **argv) {
                 "Enter guessed a Chinese character for a literal period");
         }
         engine->deactivate(mixedEntry, focus);
+      }
+      {
+        Client mixed(instance.inputContextManager());
+        fcitx::InputMethodEntry entry("senti", "SentiIME", "zh_TW", "senti");
+        fcitx::InputContextEvent focus(&mixed,
+                                       fcitx::EventType::InputContextFocusIn);
+        engine->activate(entry, focus);
+        type(engine, entry, mixed, "su3cl3qzz");
+        check(mixed.inputPanel().clientPreedit().toString() == "你好qzz",
+              "invalid phonetic tail reverted Chinese");
+        key(engine, entry, mixed, FcitxKey_Return);
+        check(mixed.committed == "你好qzz", "commit lost the Chinese prefix");
+        engine->deactivate(entry, focus);
+        engine->activate(entry, focus);
+        type(engine, entry, mixed, "1j6e.45 cjo4");
+        check(mixed.inputPanel().clientPreedit().toString() == "不夠智慧",
+              "degree context did not correct the mistyped tone");
+        key(engine, entry, mixed, FcitxKey_Return);
+        check(mixed.committed == "你好qzz不夠智慧",
+              "tone correction changed at commit");
+        engine->deactivate(entry, focus);
       }
       Client first(instance.inputContextManager());
       fcitx::InputMethodEntry entry("senti", "SentiIME", "zh_TW", "senti");

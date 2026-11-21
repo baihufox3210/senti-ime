@@ -1642,3 +1642,81 @@ fn memory_pages_stay_within_the_ipc_frame_limit_at_capacity() {
     );
     assert!(serde_json::to_vec(&next).unwrap().len() < senti_platform::MAX_FRAME_BYTES);
 }
+
+#[test]
+fn invalid_tail_keeps_visible_chinese_and_original_keys() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    for (keys, expected) in [
+        ("su3cl3", "你好"),
+        ("q", "你好q"),
+        ("z", "你好qz"),
+        ("z", "你好qzz"),
+    ] {
+        assert_eq!(
+            client
+                .type_text("editor", keys)
+                .view
+                .unwrap()
+                .converted_preedit,
+            expected
+        );
+    }
+    assert_eq!(
+        client
+            .key("editor", PlatformKey::Backspace)
+            .view
+            .unwrap()
+            .converted_preedit,
+        "你好qz"
+    );
+    assert_eq!(
+        client
+            .key("editor", PlatformKey::CommitRaw)
+            .commit
+            .as_deref(),
+        Some("su3cl3qz")
+    );
+}
+
+#[test]
+fn near_tone_word_uses_degree_context_without_overwriting_exact_reading_elsewhere() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    for (before, expected) in [("目前仍然不夠", "智慧"), ("請先", "知會"), ("", "知會")]
+    {
+        client.focus("editor", false);
+        client.send(Command::Surrounding {
+            context: "editor".into(),
+            before_cursor: before.into(),
+            after_cursor: String::new(),
+        });
+        assert_eq!(
+            client
+                .type_text("editor", "5 cjo4")
+                .view
+                .unwrap()
+                .converted_preedit,
+            expected
+        );
+        assert_eq!(
+            client.key("editor", PlatformKey::Enter).commit.as_deref(),
+            Some(expected)
+        );
+    }
+    client.focus("editor", false);
+    assert_eq!(
+        client
+            .type_text("editor", "1j6e.45 cjo4")
+            .view
+            .unwrap()
+            .converted_preedit,
+        "不夠智慧"
+    );
+    assert_eq!(
+        client
+            .key("editor", PlatformKey::CommitRaw)
+            .commit
+            .as_deref(),
+        Some("1j6e.45 cjo4")
+    );
+}

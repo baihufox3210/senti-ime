@@ -287,5 +287,35 @@
         "document": "v1.2.3"
       }
     ]
+  },
+  {
+    "name": "invalid-tail-keeps-chinese",
+    "steps": [
+      {
+        "text": "su3cl3qzz",
+        "preedit": "你好qzz"
+      },
+      {
+        "key": "backspace",
+        "preedit": "你好qz"
+      },
+      {
+        "key": "enter",
+        "document": "你好qz"
+      }
+    ]
+  },
+  {
+    "name": "contextual-tone-repair",
+    "steps": [
+      {
+        "text": "1j6e.45 cjo4",
+        "preedit": "不夠智慧"
+      },
+      {
+        "key": "enter",
+        "document": "不夠智慧"
+      }
+    ]
   }
 ]
