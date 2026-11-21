@@ -1093,13 +1093,9 @@ impl InputEngine {
             .iter(&self.memory.profile, self.ports.clock.now())
             .filter(|e| {
                 self.memory_enabled()
-                    && matches!(
-                        e.kind,
-                        senti_core::MemoryKind::Confirmed | senti_core::MemoryKind::Correction
-                    )
+                    && Self::is_trusted_memory_word(e)
                     && e.mode == mode
                     && e.code == code_for(mode, input)
-                    && e.accepts >= 2
             })
             .map(|e| e.text.clone())
             .collect();

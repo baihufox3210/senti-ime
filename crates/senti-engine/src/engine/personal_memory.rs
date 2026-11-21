@@ -133,34 +133,54 @@ impl InputEngine {
         }
         recorded
     }
-    /// A name may be assembled by picking each character at the caret.
-    /// Remember the joined reading only across deliberate, adjacent picks.
+    /// Remember a short committed word even if only its ambiguous character
+    /// needed a manual correction. Inside longer text, learn explicit runs.
     pub(super) fn remember_confirmed_zhuyin_phrases(&mut self, selections: &[Selection]) {
         if !self.memory_enabled() {
             return;
         }
-        let confirmed = |unit: &Selection| {
-            unit.confirmed && unit.learnable && unit.input_mode == Some(InputMode::Zhuyin)
-        };
+        let chinese =
+            |unit: &Selection| unit.learnable && unit.input_mode == Some(InputMode::Zhuyin);
+        if (2..=4).contains(&selections.len())
+            && selections.iter().all(chinese)
+            && selections.iter().any(|unit| unit.confirmed)
+            && self.remember_zhuyin_phrase(selections, 4)
+        {
+            return;
+        }
+        let confirmed = |unit: &Selection| unit.confirmed && chinese(unit);
         for phrase in selections.chunk_by(|a, b| confirmed(a) && confirmed(b)) {
-            if !(2..=6).contains(&phrase.len()) {
-                continue;
+            if (2..=6).contains(&phrase.len()) {
+                self.remember_zhuyin_phrase(phrase, 6);
             }
-            let raw: String = phrase.iter().map(|unit| unit.raw.as_str()).collect();
-            let text: String = phrase.iter().map(|unit| unit.text.as_str()).collect();
-            let valid = senti_core::zhuyin::parse_tolerant(&raw).is_some_and(|syllables| {
-                (2..=6).contains(&syllables.len())
-                    && syllables.len() == text.chars().count()
-                    && syllables.iter().all(|syllable| syllable.tone.is_some())
-            });
-            if valid {
-                self.remember(
-                    MemoryKind::Confirmed,
-                    InputMode::Zhuyin,
-                    &code_for(InputMode::Zhuyin, &raw),
-                    &text,
-                );
+        }
+    }
+
+    fn remember_zhuyin_phrase(&mut self, phrase: &[Selection], limit: usize) -> bool {
+        let raw: String = phrase.iter().map(|unit| unit.raw.as_str()).collect();
+        let text: String = phrase.iter().map(|unit| unit.text.as_str()).collect();
+        let valid = senti_core::zhuyin::parse_tolerant(&raw).is_some_and(|syllables| {
+            (2..=limit).contains(&syllables.len())
+                && syllables.len() == text.chars().count()
+                && syllables.iter().all(|syllable| syllable.tone.is_some())
+        });
+        valid
+            && self.remember(
+                MemoryKind::Confirmed,
+                InputMode::Zhuyin,
+                &code_for(InputMode::Zhuyin, &raw),
+                &text,
+            )
+    }
+
+    pub(super) fn is_trusted_memory_word(entry: &MemoryEntry) -> bool {
+        match entry.kind {
+            MemoryKind::Confirmed => {
+                entry.accepts >= 2
+                    || (entry.mode == InputMode::Zhuyin && entry.text.chars().count() >= 2)
             }
+            MemoryKind::Correction => entry.accepts >= 2,
+            _ => false,
         }
     }
 
@@ -257,7 +277,7 @@ impl InputEngine {
             .any(|entry| {
                 entry.kind == MemoryKind::Confirmed
                     && entry.mode == InputMode::Zhuyin
-                    && entry.accepts >= 2
+                    && Self::is_trusted_memory_word(entry)
                     && entry.code == code
                     && entry.text == text
             })
@@ -273,7 +293,7 @@ impl InputEngine {
             .any(|entry| {
                 entry.kind == MemoryKind::Confirmed
                     && entry.mode == InputMode::Zhuyin
-                    && entry.accepts >= 2
+                    && Self::is_trusted_memory_word(entry)
                     && entry.code.starts_with(&code)
             })
     }

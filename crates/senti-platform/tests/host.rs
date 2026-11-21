@@ -1589,6 +1589,66 @@ fn mixed_period_and_unfinished_phonetics_remain_literal_on_enter() {
 }
 
 #[test]
+fn short_name_learns_after_correcting_only_its_last_character() {
+    let directory = tempfile::tempdir().unwrap();
+    let options = || AppOptions::ephemeral().with_data_dir(directory.path());
+    let raw = "j;6vul3au/6";
+    {
+        let mut client = Client::new(options());
+        client.focus("editor", false);
+        client.send(Command::MemoryScope {
+            scope: "app:editor".into(),
+        });
+        let draft = client
+            .type_text("editor", raw)
+            .view
+            .unwrap()
+            .converted_preedit;
+        let mut page = client.key("editor", PlatformKey::Down).view.unwrap();
+        let label = loop {
+            if let Some(candidate) = page.candidates.iter().find(|c| c.text == "鳴") {
+                break candidate.label;
+            }
+            assert!(page.page + 1 < page.page_count);
+            page = client.key("editor", PlatformKey::PageDown).view.unwrap();
+        };
+        client.send(Command::Select {
+            context: "editor".into(),
+            label,
+        });
+        let expected = format!("{}鳴", &draft[..draft.char_indices().last().unwrap().0]);
+        assert_eq!(
+            client.key("editor", PlatformKey::Enter).commit.as_deref(),
+            Some(expected.as_str())
+        );
+        assert!(
+            client
+                .send(Command::MemoryList)
+                .memory
+                .unwrap()
+                .iter()
+                .any(|entry| entry.text == expected && entry.accepts == 1)
+        );
+        assert!(client.send(Command::MemoryFlush).ok);
+        drop(client);
+
+        let mut client = Client::new(options());
+        client.focus("editor", false);
+        client.send(Command::MemoryScope {
+            scope: "app:editor".into(),
+        });
+        assert_eq!(
+            client
+                .type_text("editor", raw)
+                .view
+                .unwrap()
+                .converted_preedit,
+            expected
+        );
+    }
+}
+
+#[test]
 fn individually_confirmed_name_is_recalled_as_one_word_after_restart() {
     let directory = tempfile::tempdir().unwrap();
     let options = || AppOptions::ephemeral().with_data_dir(directory.path());
