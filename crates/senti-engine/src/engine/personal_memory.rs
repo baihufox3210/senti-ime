@@ -167,6 +167,24 @@ impl InputEngine {
             .record_commit(&scope, text, self.ports.clock.now());
         self.persist_memory();
     }
+    pub(super) fn recent_scoped_context(&self) -> String {
+        if !self.memory_enabled()
+            || self.memory.profile == "default"
+            || self.memory.profile.starts_with("app:")
+        {
+            return String::new();
+        }
+        let mut passages: Vec<_> = self
+            .memory
+            .iter(&self.memory.profile, self.ports.clock.now())
+            .filter(|entry| entry.kind == MemoryKind::Commit)
+            .take(3)
+            .map(|entry| entry.text.as_str())
+            .collect();
+        passages.reverse();
+        passages.join("\n")
+    }
+
     pub(super) fn memory_context(&self, previous: Option<&str>) -> String {
         if !self.memory_enabled()
             || self.memory.profile == "default"

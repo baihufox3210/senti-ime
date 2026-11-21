@@ -1720,3 +1720,96 @@ fn near_tone_word_uses_degree_context_without_overwriting_exact_reading_elsewher
         Some("1j6e.45 cjo4")
     );
 }
+
+#[test]
+fn mixed_first_tone_waits_for_dictionary_evidence_without_breaking_english() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    let pending = client.type_text("editor", "up ");
+    assert!(pending.commit.is_none());
+    assert_eq!(pending.view.unwrap().converted_preedit, "up ");
+    assert_eq!(
+        client
+            .type_text("editor", "jo4")
+            .view
+            .unwrap()
+            .converted_preedit,
+        "因為"
+    );
+    assert_eq!(
+        client.key("editor", PlatformKey::Enter).commit.as_deref(),
+        Some("因為")
+    );
+    assert_eq!(
+        client.type_text("editor", "up there ").commit.as_deref(),
+        Some("up there ")
+    );
+    for (keys, expected) in [
+        ("ru,4gl4u vu84", "介紹一下"),
+        ("ru4u45j4", "記憶住"),
+        ("ru45j4", "記住"),
+    ] {
+        client.focus("editor", false);
+        assert_eq!(
+            client
+                .type_text("editor", keys)
+                .view
+                .unwrap()
+                .converted_preedit,
+            expected
+        );
+        assert_eq!(
+            client.key("editor", PlatformKey::Enter).commit.as_deref(),
+            Some(expected)
+        );
+    }
+}
+
+#[test]
+fn mixed_any_can_complete_a_recent_topic_in_the_current_or_saved_conversation() {
+    let directory = tempfile::tempdir().unwrap();
+    let options = || AppOptions::ephemeral().with_data_dir(directory.path());
+    let mut client = Client::new(options());
+    client.focus("editor", false);
+    let view = client
+        .type_text("editor", "i like apple do you have any")
+        .view
+        .unwrap();
+    assert_eq!(view.suggestion.as_deref(), Some(" apples"));
+    assert_eq!(
+        client.key("editor", PlatformKey::Tab).commit.as_deref(),
+        Some("any apples ")
+    );
+    client.focus("editor", false);
+    client.send(Command::MemoryScope {
+        scope: "work:fruit".into(),
+    });
+    client.type_text("editor", "i like apple.");
+    client.key("editor", PlatformKey::Enter);
+    assert!(client.send(Command::MemoryFlush).ok);
+    drop(client);
+    let mut client = Client::new(options());
+    client.focus("editor", false);
+    assert_eq!(
+        client
+            .type_text("editor", "do you have any")
+            .view
+            .unwrap()
+            .suggestion
+            .as_deref(),
+        Some(" apples")
+    );
+    client.focus("editor", false);
+    client.send(Command::MemoryScope {
+        scope: "work:other".into(),
+    });
+    assert_ne!(
+        client
+            .type_text("editor", "do you have any")
+            .view
+            .unwrap()
+            .suggestion
+            .as_deref(),
+        Some(" apples")
+    );
+}

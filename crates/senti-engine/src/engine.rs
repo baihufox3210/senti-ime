@@ -703,7 +703,15 @@ impl InputEngine {
     /// whole composition was converted (a literal commit is not evidence).
     fn commit_composition(&mut self, suffix: &str, learn: bool) -> KeyOutcome {
         let mut text = self.composition.literal();
-        let remember = learn && self.composition.selections().iter().any(|s| s.learnable);
+        let remember = learn
+            && self.composition.selections().iter().any(|s| {
+                s.learnable
+                    || s.input_mode == Some(InputMode::English)
+                        && s.text.bytes().filter(|b| b.is_ascii_alphabetic()).count() >= 3
+                        && s.text
+                            .bytes()
+                            .all(|b| b.is_ascii_alphabetic() || matches!(b, b' ' | b'\'' | b'.'))
+            });
         if learn {
             let selections = self.composition.selections().to_vec();
             self.learn(&selections);
@@ -848,11 +856,12 @@ impl InputEngine {
                 Some(selected_context.as_str())
             }
         };
-        let remembered = self.memory_context(previous);
+        let current_context = format!("{}{}", self.surrounding, selected_context);
+        let remembered = self.memory_context(Some(&current_context));
         let enriched = if remembered.is_empty() {
             String::new()
         } else {
-            format!("{}\n{}", remembered, previous.unwrap_or(""))
+            format!("{remembered}\n{current_context}")
         };
         let previous = if enriched.is_empty() {
             previous
@@ -911,7 +920,19 @@ impl InputEngine {
             });
         }
         if self.config.association_enabled && mode == InputMode::English && !input.is_empty() {
-            let before = format!("{}{}", self.surrounding, self.composition.selected_text());
+            let current = &current_context;
+            let history = remembered;
+            let history = if input.eq_ignore_ascii_case("any") {
+                let recent = self.recent_scoped_context();
+                if recent.is_empty() { history } else { recent }
+            } else {
+                history
+            };
+            let before = if history.is_empty() {
+                current.clone()
+            } else {
+                format!("{history}\n{current}")
+            };
             candidates.extend(
                 self.ports
                     .predictors

@@ -228,6 +228,61 @@ impl Model {
         }
         score
     }
+    // Recover an omitted topic only when a quantifier follows a verb that
+    // expects an object. Both the noun and its proposed plural must occur
+    // in the model vocabulary with learned noun evidence.
+    fn topical_quantifier(&self, before: &str, input: &str) -> Option<String> {
+        if !input.eq_ignore_ascii_case("any") {
+            return None;
+        }
+        let words = tokenize(before);
+        let (verb, prior) = words.split_last()?;
+        if !matches!(verb.as_str(), "have" | "need" | "want") {
+            return None;
+        }
+        let noun_probability = |word: &str| {
+            static ATTESTED: OnceLock<std::collections::HashSet<&'static str>> = OnceLock::new();
+            if ATTESTED
+                .get_or_init(|| {
+                    include_str!("../data/english_count_nouns.txt")
+                        .lines()
+                        .collect()
+                })
+                .contains(word)
+            {
+                return 1.0;
+            }
+            self.ids.get(word).map_or(0.0, |&id| {
+                // NOUN is index 7 in the serialized UD POS order.
+                self.lexical_pos[id * self.p + 7]
+            })
+        };
+        let context = format!("{before} {input}");
+        prior
+            .iter()
+            .rev()
+            .take(24)
+            .enumerate()
+            .filter(|(_, word)| {
+                word.len() >= 3
+                    && word.bytes().all(|b| b.is_ascii_lowercase())
+                    && noun_probability(word) >= 0.55
+            })
+            .filter_map(|(distance, word)| {
+                let plural = if word.ends_with('s') {
+                    word.clone()
+                } else {
+                    format!("{word}s")
+                };
+                (noun_probability(&plural) >= 0.55).then(|| {
+                    let score = self.sequence(Some(&context), &plural) - 0.2 * distance as f32;
+                    (plural, score)
+                })
+            })
+            .max_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(word, _)| word)
+    }
+
     fn next(&self, before: &str, mode: InputMode) -> Vec<(String, f32)> {
         let history = self.ids(before);
         if history.is_empty() {
@@ -299,18 +354,7 @@ impl Predictor for NeuralPredictor {
         before: &str,
         _after: &str,
     ) -> Vec<Candidate> {
-        if query.input.is_empty()
-            || before.trim().is_empty()
-            || before
-                .trim_end()
-                .ends_with(['.', '?', '!', '。', '？', '！'])
-                && query.input.is_empty()
-        {
-            return Vec::new();
-        }
-        if query.mode != InputMode::English
-            && !(query.mode == InputMode::Zhuyin && query.input.is_empty())
-        {
+        if query.input.is_empty() || before.trim().is_empty() || query.mode != InputMode::English {
             return Vec::new();
         }
         if !query
@@ -335,34 +379,34 @@ impl Predictor for NeuralPredictor {
             ""
         };
         let context = format!("{before}{gap}{}", query.input);
-        model
-            .next(&context, query.mode)
-            .into_iter()
-            .take(query.limit)
-            .map(|(next, probability)| {
-                let text = if query.input.is_empty() {
-                    if query.mode == InputMode::English
-                        && before
-                            .chars()
-                            .next_back()
-                            .is_some_and(|c| !c.is_whitespace())
-                    {
-                        format!(" {next}")
-                    } else {
-                        next
-                    }
-                } else {
-                    format!("{} {next}", query.input)
-                };
+        let mut candidates = Vec::new();
+        if let Some(noun) = model.topical_quantifier(before, query.input) {
+            candidates.push(
                 Candidate::new(
-                    text,
+                    format!("{} {noun}", query.input),
                     query.input.len(),
-                    0.7 + f64::from(probability),
+                    1.0,
                     CandidateSource::Context,
                 )
-                .with_mode(query.mode)
-            })
-            .collect()
+                .with_mode(query.mode),
+            );
+        }
+        candidates.extend(
+            model
+                .next(&context, query.mode)
+                .into_iter()
+                .take(query.limit.saturating_sub(candidates.len()))
+                .map(|(next, probability)| {
+                    Candidate::new(
+                        format!("{} {next}", query.input),
+                        query.input.len(),
+                        0.7 + f64::from(probability),
+                        CandidateSource::Context,
+                    )
+                    .with_mode(query.mode)
+                }),
+        );
+        candidates
     }
 }
 

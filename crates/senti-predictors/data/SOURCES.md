@@ -107,3 +107,5 @@ python3 scripts/import_mcbopomofo.py --source-dir /path/to/upstream --properties
 它不是獨立自然語料或全場景測試集；完整回歸句「推薦之後」「補全完文字」刻意排除。
 重建及檢查：`python scripts/build_domain_corpus.py`、`python scripts/build_domain_corpus.py --check`。
 這兩項新增資料依本專案 MIT 授權。
+
+英文可數名詞補充檔 `english_count_nouns.txt` 來自 repo 內 v2 模型的 Tatoeba CC0 英文語料。單數取 `a/an` 後的小寫字，規則複數取數詞 `two/three/four/five` 後的字，僅保留單複數都經語料見證且都在 v2 詞彙表的配對。檔案收錄 121 組，不含外部字典全文。
