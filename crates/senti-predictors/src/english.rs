@@ -75,7 +75,7 @@ impl EnglishPredictor {
 }
 
 /// Apply the casing pattern of `typed` to `word`.
-fn match_case(typed: &str, word: &str) -> String {
+pub(crate) fn match_case(typed: &str, word: &str) -> String {
     let mut letters = typed.chars().filter(|c| c.is_alphabetic());
     let first_upper = letters.next().is_some_and(char::is_uppercase);
     let rest: Vec<char> = letters.collect();

@@ -333,8 +333,38 @@ impl Predictor for NeuralPredictor {
     fn id(&self) -> &'static str {
         "neural-ime-v2"
     }
-    fn predict(&self, _query: &PredictionQuery<'_>) -> Vec<Candidate> {
-        Vec::new()
+    fn predict(&self, query: &PredictionQuery<'_>) -> Vec<Candidate> {
+        let input = query.input;
+        if query.mode != InputMode::English
+            || input.len() < 3
+            || !input.bytes().all(|b| b.is_ascii_alphabetic() || b == b'\'')
+        {
+            return Vec::new();
+        }
+        let model = Model::shared();
+        let prefix = input.to_ascii_lowercase();
+        let mut candidates: Vec<_> = model
+            .tokens
+            .iter()
+            .enumerate()
+            .filter(|(_, word)| {
+                word.len() > prefix.len()
+                    && word.starts_with(&prefix)
+                    && word.bytes().all(|b| b.is_ascii_lowercase() || b == b'\'')
+            })
+            .map(|(id, word)| {
+                Candidate::new(
+                    crate::english::match_case(input, word),
+                    input.len(),
+                    0.65 + 0.02 * f64::from(model.output_bias[id])
+                        - 0.015 * (word.len() - input.len()) as f64,
+                    CandidateSource::Lexicon,
+                )
+            })
+            .collect();
+        candidates.sort_by(|a, b| b.score.total_cmp(&a.score).then(a.text.cmp(&b.text)));
+        candidates.truncate(query.limit.min(12));
+        candidates
     }
     fn context_score(&self, previous: Option<&str>, text: &str, next: Option<&str>) -> f64 {
         let score = Self::sequence_score(previous, text);

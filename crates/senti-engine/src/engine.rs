@@ -1211,35 +1211,74 @@ impl InputEngine {
         }
     }
 
-    fn context_suggestion(&self) -> Option<String> {
-        if self.composition.remaining().is_empty() || self.selecting || self.editor.is_some() {
+    fn suggestion_index(&self) -> Option<usize> {
+        let raw = self.composition.remaining();
+        if raw.is_empty() || self.selecting || self.editor.is_some() {
             return None;
         }
-        self.candidates.iter().find_map(|candidate| {
-            if candidate.source != CandidateSource::Context {
-                return None;
-            }
-            candidate
-                .text
-                .strip_prefix(self.composition.remaining())
-                .filter(|tail| !tail.is_empty())
-                .map(str::to_owned)
+        let extends_raw = |candidate: &Candidate| {
+            candidate.consumed == raw.len()
+                && candidate
+                    .text
+                    .strip_prefix(raw)
+                    .is_some_and(|tail| !tail.is_empty())
+        };
+        if let Some(index) = self.candidates.iter().position(|candidate| {
+            candidate.source == CandidateSource::Context && extends_raw(candidate)
+        }) {
+            return Some(index);
+        }
+        if self.mode != InputMode::Mixed
+            || raw.len() < 3
+            || !raw.bytes().all(|b| b.is_ascii_alphabetic() || b == b'\'')
+            || !self.mixed_prefers_english()
+            || self.candidates.iter().any(|c| {
+                c.input_mode == Some(InputMode::English)
+                    && c.source == CandidateSource::Lexicon
+                    && c.text.eq_ignore_ascii_case(raw)
+            })
+        {
+            return None;
+        }
+        self.candidates.iter().position(|candidate| {
+            candidate.input_mode == Some(InputMode::English)
+                && matches!(
+                    candidate.source,
+                    CandidateSource::Lexicon | CandidateSource::UserHistory
+                )
+                && extends_raw(candidate)
+                && candidate
+                    .text
+                    .bytes()
+                    .all(|b| b.is_ascii_alphabetic() || b == b'\'')
         })
     }
 
-    /// Accept a context suggestion explicitly; ordinary typing never does.
+    fn context_suggestion(&self) -> Option<String> {
+        let index = self.suggestion_index()?;
+        self.candidates[index]
+            .text
+            .strip_prefix(self.composition.remaining())
+            .map(str::to_owned)
+    }
+
+    /// Tab accepts the same completion currently displayed in preedit.
     pub fn accept_suggestion(&mut self) -> KeyOutcome {
-        if self.context_suggestion().is_none() {
+        let Some(index) = self.suggestion_index() else {
             return KeyOutcome::PassThrough;
+        };
+        if self.candidates[index].source != CandidateSource::Context {
+            let candidate = self.candidates[index].clone();
+            self.composition.select_with_mode(
+                candidate.consumed,
+                candidate.text,
+                true,
+                Some(InputMode::English),
+            );
+            self.composition.confirm_last_selection();
+            return self.commit_composition(" ", true);
         }
-        match self
-            .candidates
-            .iter()
-            .position(|candidate| candidate.source == CandidateSource::Context)
-        {
-            Some(index) => self.select_index(index),
-            None => KeyOutcome::PassThrough,
-        }
+        self.select_index(index)
     }
 
     fn converted_preedit(&self) -> String {

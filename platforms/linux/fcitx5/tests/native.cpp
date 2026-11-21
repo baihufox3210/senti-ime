@@ -201,6 +201,17 @@ int main(int argc, char **argv) {
         }
         engine->deactivate(entry, focus);
         engine->activate(entry, focus);
+        type(engine, entry, mixed, "tomo");
+        check(mixed.inputPanel().clientPreedit().toString() == "tomorrow",
+              "mixed English word hint was not displayed");
+        check(!mixed.inputPanel().candidateList(),
+              "word hint unexpectedly opened the candidate window");
+        key(engine, entry, mixed, FcitxKey_Tab);
+        check(mixed.committed == "tomorrow ",
+              "Tab did not accept the visible word");
+        mixed.committed.clear();
+        engine->deactivate(entry, focus);
+        engine->activate(entry, focus);
         type(engine, entry, mixed, "up");
         key(engine, entry, mixed, FcitxKey_Down);
         key(engine, entry, mixed, FcitxKey_Return);

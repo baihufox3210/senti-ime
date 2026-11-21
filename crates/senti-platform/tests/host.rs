@@ -1914,3 +1914,64 @@ fn learned_english_u_keeps_the_first_tone_of_an_ambiguous_zhuyin_phrase() {
         "上下文"
     );
 }
+
+#[test]
+fn explicit_mixed_candidates_keep_the_first_tone_after_chinese_text() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    client.send(Command::Surrounding {
+        context: "editor".into(),
+        before_cursor: "這是原".into(),
+        after_cursor: String::new(),
+    });
+    client.type_text("editor", "up");
+    let view = client.key("editor", PlatformKey::Down).view.unwrap();
+    assert_eq!(view.candidates[view.candidate_cursor].text, "因");
+    assert!(
+        !view
+            .candidates
+            .iter()
+            .any(|c| c.text == "引" || c.text == "印")
+    );
+    assert_eq!(
+        client.key("editor", PlatformKey::Enter).commit.as_deref(),
+        Some("因")
+    );
+    assert_eq!(
+        client.type_text("editor", "up there ").commit.as_deref(),
+        Some("up there ")
+    );
+}
+
+#[test]
+fn english_word_completion_is_visible_and_explicit_in_mixed_mode() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    let view = client.type_text("editor", "tomo").view.unwrap();
+    assert_eq!(view.converted_preedit, "tomo");
+    assert_eq!(view.suggestion.as_deref(), Some("rrow"));
+    assert!(!view.selecting);
+    assert_eq!(
+        client.key("editor", PlatformKey::Tab).commit.as_deref(),
+        Some("tomorrow ")
+    );
+    assert!(
+        client
+            .send(Command::Ping)
+            .view
+            .unwrap()
+            .suggestion
+            .is_none()
+    );
+    client.type_text("editor", "tomo");
+    assert_eq!(
+        client.key("editor", PlatformKey::Enter).commit.as_deref(),
+        Some("tomo")
+    );
+    let view = client.type_text("editor", "questi").view.unwrap();
+    assert_eq!(view.suggestion.as_deref(), Some("on"));
+    assert_eq!(
+        client.key("editor", PlatformKey::Tab).commit.as_deref(),
+        Some("question ")
+    );
+}
