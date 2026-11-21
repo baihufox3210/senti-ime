@@ -723,7 +723,7 @@ std::string Engine::subModeLabelImpl(const fcitx::InputMethodEntry &,
   return mode == "English"   ? "EN"
          : mode == "Zhuyin"  ? "注"
          : mode == "Chinese" ? "拼"
-                             : "中英";
+                             : "混";
 }
 class Factory final : public fcitx::AddonFactory {
   fcitx::AddonInstance *create(fcitx::AddonManager *manager) override {

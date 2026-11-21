@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
         fcitx::InputContextEvent initialFocus(
             &initial, fcitx::EventType::InputContextFocusIn);
         engine->activate(defaultEntry, initialFocus);
-        check(engine->subModeLabel(defaultEntry, initial) == "中英",
+        check(engine->subModeLabel(defaultEntry, initial) == "混",
               "default entry did not start with Chinese mixed mode");
         for (const auto &[keys, expected] : {std::pair{"s", "s"},
                                              {"u", "su"},
