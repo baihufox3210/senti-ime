@@ -33,6 +33,24 @@
     ]
   },
   {
+    "name": "first-tone-casual-greeting",
+    "steps": [
+      {
+        "text": "c9",
+        "preedit": "c9"
+      },
+      {
+        "key": "space",
+        "preedit": "嗨",
+        "selecting": false
+      },
+      {
+        "key": "enter",
+        "document": "嗨"
+      }
+    ]
+  },
+  {
     "name": "literal-period",
     "steps": [
       {

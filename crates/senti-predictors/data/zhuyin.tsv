@@ -1,5 +1,6 @@
 # Dachen keys (space = first tone)	text	frequency	tags
 # Derived from CNS11643; see SOURCES.md. Do not trim column 1.
+c9 	嗨	3000	casual,greeting
 8 	啊	3000	
 87	啊	3000	
 94	愛	3000	positive

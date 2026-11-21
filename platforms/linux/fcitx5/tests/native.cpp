@@ -531,6 +531,12 @@ int main(int argc, char **argv) {
       check(contextual.ends_with("自己"), "appended reading did not revise the current word");
       key(engine, entry, fifth, FcitxKey_Return);
       check(fifth.committed == contextual, "contextual repair changed at commit");
+      fifth.committed.clear();
+      type(engine, entry, fifth, "c9 ");
+      check(fifth.inputPanel().clientPreedit().toString() == "嗨",
+            "first-tone casual greeting did not rank first");
+      key(engine, entry, fifth, FcitxKey_Return);
+      check(fifth.committed == "嗨", "casual greeting commit differed from preview");
       engine->deactivate(entry, fifthFocus);
       Client sixth(instance.inputContextManager());
       fcitx::InputContextEvent sixthFocus(
