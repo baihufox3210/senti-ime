@@ -1851,3 +1851,22 @@ fn legacy_single_letter_english_learning_cannot_split_a_chinese_word() {
         "你好go"
     );
 }
+
+#[test]
+fn mixed_neutral_particle_can_recover_when_no_exact_reading_exists() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    for (raw, expected) in [
+        ("ji3sk7", "我呢"),
+        ("sk7", "呢"),
+        ("ji3sk ", "我呢"),
+        ("ji3sk6", "我呢"),
+    ] {
+        client.focus("editor", false);
+        let view = client.type_text("editor", raw).view.unwrap();
+        assert_eq!(view.converted_preedit, expected, "{raw:?}");
+        assert_eq!(
+            client.key("editor", PlatformKey::Enter).commit.as_deref(),
+            Some(expected)
+        );
+    }
+}

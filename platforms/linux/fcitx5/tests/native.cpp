@@ -190,6 +190,15 @@ int main(int argc, char **argv) {
         fcitx::InputContextEvent focus(&mixed,
                                        fcitx::EventType::InputContextFocusIn);
         engine->activate(entry, focus);
+        for (const auto *reading : {"ji3sk7", "ji3sk "}) {
+          type(engine, entry, mixed, reading);
+          check(mixed.inputPanel().clientPreedit().toString() == "我呢",
+                "mixed neutral particle conversion failed");
+          key(engine, entry, mixed, FcitxKey_Return);
+          check(mixed.committed == "我呢",
+                "mixed neutral particle failed to commit");
+          mixed.committed.clear();
+        }
         type(engine, entry, mixed, "up jo4");
         check(mixed.inputPanel().clientPreedit().toString() == "因為",
               "English up prevented a first-tone dictionary word");

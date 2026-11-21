@@ -73,6 +73,8 @@ pub enum CandidateSource {
     Lexicon,
     /// A multi-word conversion assembled by a predictor.
     Sentence,
+    /// A lower-ranked full sentence available for explicit selection.
+    SentenceAlternative,
     /// A contextual conversion that differs from the typed tones.
     ToneCorrection,
     /// Something the user typed before.
@@ -94,6 +96,7 @@ impl CandidateSource {
         match self {
             CandidateSource::Lexicon => "lexicon",
             CandidateSource::Sentence => "sentence",
+            CandidateSource::SentenceAlternative => "sentence_alternative",
             CandidateSource::ToneCorrection => "tone_correction",
             CandidateSource::UserHistory => "learned",
             CandidateSource::Association => "next",

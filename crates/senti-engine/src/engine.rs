@@ -1009,7 +1009,9 @@ impl InputEngine {
                         || (!lexical_words.contains(&candidate.text)
                             && matches!(
                                 candidate.source,
-                                CandidateSource::Sentence | CandidateSource::UserHistory
+                                CandidateSource::Sentence
+                                    | CandidateSource::SentenceAlternative
+                                    | CandidateSource::UserHistory
                             ))
                     {
                         candidate.score = candidate.score.min(best - 0.025);

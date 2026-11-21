@@ -386,6 +386,11 @@ impl Predictor for ZhuyinPredictor {
             .filter(|c| c.consumed == query.input.len())
             .map(|c| c.score)
             .max_by(f64::total_cmp);
+        let best_partial = candidates
+            .iter()
+            .filter(|c| c.consumed < query.input.len())
+            .map(|c| c.score)
+            .max_by(f64::total_cmp);
         let mut finals: Vec<_> = beams[n].iter().collect();
         if n > 1 {
             finals.sort_by(|a, b| {
@@ -398,18 +403,30 @@ impl Predictor for ZhuyinPredictor {
                 score(b).total_cmp(&score(a))
             });
         }
-        for path in finals.into_iter().take(1) {
+        for (rank, path) in finals.into_iter().take(4).enumerate() {
             if path.words > 1 {
                 let score = 1.05
                     + 0.3 * path.weight / path.words as f64
                     + 0.12 * self.data.language_model.score(query.previous, &path.text);
-                let score = best_word.map_or(score, |word| score.min(word - 0.025));
+                let score =
+                    best_word.map_or(score, |word| score.min(word - 0.025)) - 0.12 * rank as f64;
+                let score = if rank == 0 {
+                    score
+                } else {
+                    best_partial.map_or(score, |partial| {
+                        score.min(partial - 0.18 - 0.04 * rank as f64)
+                    })
+                };
                 candidates.push(
                     Candidate::new(
                         &path.text,
                         query.input.len(),
                         score,
-                        CandidateSource::Sentence,
+                        if rank == 0 {
+                            CandidateSource::Sentence
+                        } else {
+                            CandidateSource::SentenceAlternative
+                        },
                     )
                     .with_annotation(zhuyin::display(query.input)),
                 );
@@ -432,6 +449,45 @@ impl Predictor for ZhuyinPredictor {
                     )
                     .with_annotation(format!("聲調修正 · {reading}")),
                 );
+            }
+        }
+        // A mistyped final tone may stand for a dictionary-attested neutral
+        // particle. Try this only when no exact full conversion exists.
+        if let Some(last) = syllables.last().filter(|s| matches!(s.tone, Some(1 | 2))) {
+            if !candidates.iter().any(|c| c.consumed == query.input.len()) {
+                let mut neutral = last.clone();
+                neutral.tone = Some(5);
+                let particles: Vec<_> = self
+                    .matches_at(std::slice::from_ref(&neutral))
+                    .filter(|(_, entry)| {
+                        matches!(entry.text.as_str(), "呢" | "嗎" | "吧" | "啊" | "呀" | "啦")
+                    })
+                    .map(|(_, entry)| entry.text.as_str())
+                    .collect();
+                if !particles.is_empty() {
+                    let mut corrected = query.input[..last.end - 1].to_owned();
+                    corrected.push('7');
+                    let repaired = PredictionQuery {
+                        input: &corrected,
+                        ..*query
+                    };
+                    if let Some(candidate) = self
+                        .predict(&repaired)
+                        .into_iter()
+                        .filter(|c| c.consumed == corrected.len())
+                        .find(|c| particles.iter().any(|p| c.text.ends_with(p)))
+                    {
+                        candidates.push(
+                            Candidate::new(
+                                candidate.text,
+                                query.input.len(),
+                                candidate.score,
+                                CandidateSource::ToneCorrection,
+                            )
+                            .with_annotation(format!("輕聲修正 · {}", zhuyin::display(&corrected))),
+                        );
+                    }
+                }
             }
         }
         candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
