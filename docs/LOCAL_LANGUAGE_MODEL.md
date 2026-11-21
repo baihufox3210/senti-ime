@@ -160,4 +160,36 @@ Linux 安裝可在 CMake 設定時指定 `SENTI_D512_DIRECTORY`。該目錄須�
 `model.onnx`、`model.onnx.data`、`vocab.json`、`LICENSE`。Python 3 需可載入 NumPy 和 ONNX Runtime，
 也可把相容版本安裝到模型目錄的 `python/`。主程序會自動載入隨安裝附帶的 `d512/`。
 可用 `SENTI_IME_D512_MODEL` 或個人資料目錄下的 `d512/` 指定模型。
-權重載入在獨立程序中進行。忙碌、未就緒或超過單次 15 ms 等待時使用 v2，遲到的分數不套用到後面的按鍵。
+權重載入在獨立程序中進行。D512 忙碌、未就緒或超過當次按鍵剩餘的模型等待預算時使用 v2。
+
+
+### Qwen3-0.6B 的前後文評分
+
+Linux 混打有右側文字時，優先用官方 Qwen3-0.6B Q8_0 評分。模型從左側文字續讀候選詞及右側前三個 token，
+比較條件機率。待選內容由輸入法提供，模型只回傳分數。沒有右側文字時，仍優先使用帶注音條件的 D512。
+兩個模型共用每鍵最多 15 ms 的等待預算，Qwen 最多等待 5 ms。較慢的 Qwen 結果可在 250 ms 之內更新仍顯示的
+同一版普通組字，選字、提交、失焦或原始按鍵／前後文改變時捨棄。游標編輯組字只採用即時結果。
+
+以相同的 256 筆 UD Chinese-GSD test 同音候選比較，最多六個候選，先前字固定且正解已召回：
+
+| 模型 | 候選首選正確率 | 單組模型評分 p95 |
+| --- | ---: | ---: |
+| 0c D512 Q4 | 83.98% | 8.49 ms |
+| Qwen3-0.6B Q8_0 | 76.56% | 12.93 ms |
+| 內建 v2 | 75.39% | — |
+
+Qwen 使用 RTX 3070 Vulkan，D512 使用 CPU。比較只提供左側語境，兩者數字均為相同候選集合內的排名，
+整句選字、真實按鍵延遲與 Fcitx5 桌面驗收應分別看待。Qwen 使用官方預訓練權重。
+使用 `python scripts/benchmark_native.py --scenario rerank --iterations 48` 進行 360 次主程序 IPC 往返。
+在本機硬體上啟用 Qwen 與 D512 後，按鍵與提交的 p95 為 6.97 ms，較慢的模型改選在重播中位數約 20.2 ms 可見。
+四個固定的前後文案例各通過 12 次，另以實際 Fcitx5 addon 和暫存安裝包驗證「他是一位優秀的經紀，代理過許多藝人」。
+
+
+用匹配版的 llama.cpp 標頭與共享函式庫建置 `senti-qwen`。本次使用 b12606。CMake 的
+`SENTI_QWEN_DIRECTORY` 指向含 `include/`、`model.gguf`、`QWEN-LICENSE`、`LLAMA-LICENSE` 的目錄，
+`SENTI_LLAMA_LIBRARY_DIR` 指向匹配的共享函式庫。安裝會自動佈署模型、兩份授權及執行程式。
+開發模式可將 `SENTI_IME_QWEN_MODEL` 指向含 `senti-qwen`、`model.gguf`、`lib/` 的目錄。
+無可用模型時可正常使用其餘選字管線。
+
+- [Qwen3-0.6B 官方 GGUF](https://huggingface.co/Qwen/Qwen3-0.6B-GGUF)
+- [llama.cpp b12606](https://github.com/ggml-org/llama.cpp/releases/tag/b12606)

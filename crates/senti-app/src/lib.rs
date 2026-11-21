@@ -17,7 +17,7 @@ use senti_core::{AppKind, Clock, InputMode};
 use senti_engine::{EngineBuilder, EngineConfig, InputEngine};
 use senti_plugins::builtin_plugins;
 use senti_predictors::{
-    AssociationPredictor, D512Predictor, EnglishPredictor, NeuralPredictor, PinyinPredictor,
+    AssociationPredictor, EnglishPredictor, LocalWordPredictor, NeuralPredictor, PinyinPredictor,
     UserHistoryPredictor, ZhuyinPredictor,
 };
 use senti_storage::JsonFileStore;
@@ -131,6 +131,21 @@ pub fn build_engine(options: AppOptions) -> InputEngine {
         Some(clock) => builder.boxed_clock(clock),
         None => builder.clock(SystemClock),
     };
+    let configured_qwen = std::env::var_os("SENTI_IME_QWEN_MODEL").map(PathBuf::from);
+    let user_qwen = options
+        .persistence
+        .model_path()
+        .map(|path| path.with_file_name("qwen"));
+    let packaged_qwen = std::env::current_exe()
+        .ok()
+        .map(|path| path.with_file_name("qwen"));
+    if let Some(predictor) = [configured_qwen, user_qwen, packaged_qwen]
+        .iter()
+        .flatten()
+        .find_map(|path| LocalWordPredictor::open_qwen(path))
+    {
+        builder = builder.predictor(predictor);
+    }
     let configured_model = std::env::var_os("SENTI_IME_D512_MODEL").map(PathBuf::from);
     let user_model = options
         .persistence
@@ -142,7 +157,7 @@ pub fn build_engine(options: AppOptions) -> InputEngine {
     if let Some(predictor) = [configured_model, user_model, packaged_model]
         .iter()
         .flatten()
-        .find_map(|path| D512Predictor::open(path))
+        .find_map(|path| LocalWordPredictor::open_d512(path))
     {
         builder = builder.predictor(predictor);
     }

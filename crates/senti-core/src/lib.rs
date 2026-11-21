@@ -32,7 +32,7 @@ pub use context::{
 pub use error::StoreError;
 pub use personal_memory::{MemoryEntry, MemoryKind, MemoryStore, PersonalMemory};
 pub use plugin::{Plugin, PluginManifest};
-pub use ports::{Clock, ContextAnalyzer, FixedClock, Predictor, UserModelStore};
+pub use ports::{Clock, ContextAnalyzer, FixedClock, Predictor, UserModelStore, WordModelScore};
 pub use query::PredictionQuery;
 pub use text::{SYLLABLE_SEPARATOR, code_for, normalize_code, raw_offset_for_code_len};
 pub use user_model::{UserModel, UserModelStats};

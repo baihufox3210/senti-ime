@@ -10,6 +10,7 @@
 #include <fcitx/userinterfacemanager.h>
 #include <iostream>
 #include <stdexcept>
+#include <thread>
 
 namespace {
 void check(bool value, const char *message) {
@@ -73,6 +74,40 @@ int main(int argc, char **argv) {
         factory()->create(&instance.addonManager()));
     auto *engine = dynamic_cast<fcitx::InputMethodEngine *>(addon.get());
     check(engine != nullptr, "addon is not an input method");
+    if (argc == 4 && std::string_view(argv[3]) == "qwen") {
+      {
+        Client client(instance.inputContextManager());
+        client.setCapabilityFlags(
+            fcitx::CapabilityFlags(fcitx::CapabilityFlag::Preedit) |
+            fcitx::CapabilityFlag::SurroundingText);
+        const fcitx::InputMethodEntry entry("senti", "SentiIME", "zh_TW", "senti");
+        fcitx::InputContextEvent focus(&client, fcitx::EventType::InputContextFocusIn);
+        engine->activate(entry, focus);
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        client.surroundingText().setText("他是一位優秀的，代理過許多藝人", 7, 7);
+        client.updateSurroundingText();
+        type(engine, entry, client, "ru/ ru4");
+        auto stop = instance.eventLoop().addTimeEvent(
+            CLOCK_MONOTONIC, fcitx::now(CLOCK_MONOTONIC) + 300000, 1000,
+            [&instance](fcitx::EventSourceTime *, uint64_t) {
+              instance.eventLoop().exit();
+              return false;
+            });
+        instance.eventLoop().exec();
+        const auto draft = client.inputPanel().clientPreedit().toString();
+        check(draft == "經紀", ("Qwen preview: " + draft).c_str());
+        check(!client.inputPanel().candidateList(), "reranking opened the menu");
+        client.committed.clear();
+        key(engine, entry, client, FcitxKey_Return);
+        check(client.committed == draft, "model preview changed at commit");
+        engine->deactivate(entry, focus);
+      }
+      addon.reset();
+      dlclose(module);
+      std::cout << "native Qwen context reranking passed\n";
+      return 0;
+    }
+
     if (argc == 4) {
       {
         Client client(instance.inputContextManager());

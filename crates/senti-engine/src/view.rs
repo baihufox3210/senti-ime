@@ -34,6 +34,10 @@ pub struct EngineView {
     pub suggestion: Option<String>,
     /// Alternative phonetic interpretation while preserving raw mixed input.
     pub phonetic_preview: Option<String>,
+    #[serde(default)]
+    pub decode_revision: u64,
+    #[serde(default)]
+    pub model_pending: bool,
     pub composing: bool,
     pub selecting: bool,
     /// Zero-based cursor within the visible candidate page.

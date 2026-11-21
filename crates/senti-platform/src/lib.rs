@@ -80,6 +80,10 @@ pub enum Command {
         #[serde(default)]
         after_cursor: String,
     },
+    PollWordModel {
+        context: String,
+        revision: u64,
+    },
     Reset {
         context: String,
     },
@@ -179,6 +183,7 @@ impl PlatformHost {
     }
 
     pub fn handle(&mut self, request: Request) -> Response {
+        let poll_word_model = matches!(request.command, Command::PollWordModel { .. });
         if request.version != PROTOCOL_VERSION {
             return Response::invalid(request.id, "unsupported protocol version");
         }
@@ -248,6 +253,12 @@ impl PlatformHost {
                     if !self.sensitive {
                         self.engine.set_following_text(&after_cursor);
                         self.engine.set_surrounding_text(&before_cursor);
+                    }
+                }
+                Command::PollWordModel { context, revision } => {
+                    self.require_active(&context)?;
+                    if !self.sensitive {
+                        self.engine.poll_word_model(revision);
                     }
                 }
                 Command::Reset { context } => {
@@ -328,7 +339,7 @@ impl PlatformHost {
         if let Err(message) = result {
             return Response::invalid(request.id, &message);
         }
-        if self.active.is_some() && !self.sensitive {
+        if self.active.is_some() && !self.sensitive && !poll_word_model {
             self.engine.compact_native_composition();
         }
         let memory_listing = memory.is_some();

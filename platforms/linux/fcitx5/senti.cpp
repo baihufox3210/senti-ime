@@ -540,10 +540,13 @@ void Engine::failure(fcitx::InputContext *ic, bool recover) {
     FCITX_WARN() << "SentiIME backend unavailable; native key passes through";
   unavailable_ = true;
 }
-void Engine::apply(fcitx::InputContext *ic, const Json &response) {
+void Engine::apply(fcitx::InputContext *ic, const Json &response,
+                   bool scheduleModelPoll) {
   auto *state = ic->propertyFor(&factory_);
   state->view = get(response, "view");
   ++state->revision;
+  if (scheduleModelPoll)
+    state->modelPoll.reset();
   const auto &view = state->view;
   state->chineseMode = text(get(view, "chinese_mode"), state->chineseMode);
   auto mode = text(get(view, "mode"));
@@ -592,6 +595,37 @@ void Engine::apply(fcitx::InputContext *ic, const Json &response) {
     ic->inputPanel().setAuxDown(fcitx::Text(warning));
   auto weak = std::weak_ptr<int>(lifetime_);
   auto revision = state->revision;
+  if (scheduleModelPoll && truth(get(view, "model_pending"))) {
+    const auto hostRevision = integer(get(view, "decode_revision"));
+    const auto watched = ic->watch();
+    state->modelPoll = instance_->eventLoop().addTimeEvent(
+        CLOCK_MONOTONIC, fcitx::now(CLOCK_MONOTONIC) + 20000, 2000,
+        [this, weak, watched, revision, hostRevision](fcitx::EventSourceTime *event,
+                                                     uint64_t) {
+          auto *context = watched.get();
+          if (!weak.lock() || !context)
+            return false;
+          auto *current = context->propertyFor(&factory_);
+          if (!context->hasFocus() || sensitive(context) ||
+              current->revision != revision || current->id != active_)
+            return false;
+          try {
+            auto request = command("poll_word_model", current->id);
+            set(request, "revision", number(hostRevision));
+            auto reply = bridge_.exchange(request);
+            auto latest = get(reply, "view");
+            if (truth(get(latest, "model_pending"))) {
+              event->setNextInterval(20000);
+              return true;
+            }
+            if (integer(get(latest, "decode_revision")) != hostRevision)
+              apply(context, reply, false);
+          } catch (...) {
+            // An optional model update must never commit or clear the draft.
+          }
+          return false;
+        });
+  }
   auto candidates = get(view, "candidates");
   if (open && candidates &&
       json_object_is_type(candidates.get(), json_type_array) &&

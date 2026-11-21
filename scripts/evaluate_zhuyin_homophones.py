@@ -3,6 +3,8 @@
 import argparse
 from collections import defaultdict
 import json
+import random
+import subprocess
 from pathlib import Path
 import struct
 from time import perf_counter
@@ -15,9 +17,12 @@ from train_neural import ROOT, read_corpus
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('models', type=Path, nargs='+')
 parser.add_argument('--d512', type=Path, help='Local directory with official 0c ONNX and vocabulary')
+parser.add_argument('--qwen', type=Path, help='Prepared directory with senti-qwen, model.gguf and lib/')
 parser.add_argument('--sample-size', type=int, default=256, help='Maximum common cases with --d512')
 parser.add_argument('--calibration-size', type=int, default=512, help='UD GSD train cases to fit the 0c frequency weight')
 args = parser.parse_args()
+if args.qwen and not args.d512:
+    parser.error('--qwen requires --d512 for the common test cohort')
 if args.calibration_size < 1:
     parser.error('--calibration-size must be positive')
 if args.sample_size < 1:
@@ -69,7 +74,7 @@ def evaluation_cases(split):
                         candidates = sorted(
                             (c for c in candidates if c in d512.chars),
                             key=lambda c: (-groups[code][c], c),
-                        )[:16]
+                        )[:6 if args.qwen else 16]
                         if word not in candidates or len(candidates) < 2 or not d512.supports(sounds):
                             continue
                         d512_cases.append((''.join(context[:-1]), sounds, previous))
@@ -133,6 +138,33 @@ if args.d512:
         'batched_scoring_ms_p50': float(np.median(timings)),
         'batched_scoring_ms_p95': float(np.percentile(timings, 95)),
     }
+if args.qwen:
+    binary = args.qwen.resolve()
+    command = [binary / 'senti-qwen', binary / 'model.gguf', binary / 'lib']
+    wins, timings = 0, []
+    rng = random.Random(42)
+    with subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                          stderr=subprocess.DEVNULL, text=True) as worker:
+        if worker.stdout.readline().strip() != 'ready':
+            raise RuntimeError('Qwen worker could not open the model')
+        for (_, answer, candidates, _), (before, _, previous) in zip(cases, d512_cases):
+            options = rng.sample(candidates, len(candidates))
+            payload = (before[-64:], '', [previous + option for option in options])
+            start = perf_counter()
+            worker.stdin.write(json.dumps(payload, ensure_ascii=False) + '\n')
+            worker.stdin.flush()
+            scores = json.loads(worker.stdout.readline())
+            timings.append((perf_counter() - start) * 1000)
+            if scores is None or len(scores) != len(options):
+                raise RuntimeError('Qwen returned an invalid score vector')
+            wins += options[int(np.argmax(scores))] == answer
+        worker.stdin.close()
+    report['models']['Qwen3-0.6B-Q8_0'] = {
+        'neural': wins / len(cases),
+        'scoring_ms_p50': float(np.median(timings)),
+        'scoring_ms_p95': float(np.percentile(timings, 95)),
+    }
+
 for path, vocab in zip(args.models, vocabularies):
     ids = {token: i for i, token in enumerate(vocab)}
     _, d, _, c, t, _ = struct.unpack('<6I', (path / 'model.bin').read_bytes()[8:32])

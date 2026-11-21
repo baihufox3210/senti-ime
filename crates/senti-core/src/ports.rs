@@ -3,6 +3,13 @@ use crate::{
     UserModel,
 };
 
+/// Model score vectors are ordered like the supplied shortlist.
+#[derive(Debug)]
+pub enum WordModelScore {
+    Ready(Vec<f64>),
+    Deferred(std::sync::mpsc::Receiver<Option<Vec<f64>>>),
+}
+
 /// Produces candidates for a composition. Implementations must be pure with
 /// respect to the query: all mutable, personalised state lives in the
 /// [`UserModel`] passed through the query, so predictors are freely
@@ -35,7 +42,14 @@ pub trait Predictor: Send {
     }
 
     /// Optional model scores for a shortlist sharing one complete reading.
-    fn rank_word(&self, _raw: &str, _before: &str, _words: &[&str]) -> Option<Vec<f64>> {
+    fn rank_word(
+        &self,
+        _raw: &str,
+        _before: &str,
+        _after: &str,
+        _words: &[&str],
+        _deadline: std::time::Instant,
+    ) -> Option<WordModelScore> {
         None
     }
 

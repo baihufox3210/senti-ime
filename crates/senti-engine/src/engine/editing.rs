@@ -489,7 +489,7 @@ impl InputEngine {
                         CandidateSource::SentenceAlternative,
                     ));
                 }
-                self.rank_with_word_model(&raw, &before, &mut candidates);
+                self.rank_with_word_model(&raw, &before, &right, &mut candidates, None);
             }
             if let Some(candidate) = candidates.first() {
                 for (unit, character) in self.editor.as_mut().unwrap().units[start..end]

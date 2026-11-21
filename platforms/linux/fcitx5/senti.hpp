@@ -1,6 +1,7 @@
 #pragma once
 #include "bridge.hpp"
 #include <fcitx-config/configuration.h>
+#include <fcitx-utils/event.h>
 #include <fcitx-config/option.h>
 #include <fcitx/action.h>
 #include <fcitx/inputcontextproperty.h>
@@ -37,6 +38,7 @@ struct ContextState : fcitx::InputContextProperty {
   std::string mode = "Mixed";
   std::string chineseMode = "Mixed";
   Json view;
+  std::unique_ptr<fcitx::EventSourceTime> modelPoll;
   uint64_t generation = 0;
   uint64_t revision = 0;
   uint64_t configRevision = 0;
@@ -66,7 +68,7 @@ public:
 private:
   bool sensitive(fcitx::InputContext *) const;
   void ensureActive(fcitx::InputContext *);
-  void apply(fcitx::InputContext *, const Json &);
+  void apply(fcitx::InputContext *, const Json &, bool scheduleModelPoll = true);
   void clear(fcitx::InputContext *);
   void updateMemoryMenu(fcitx::InputContext *);
   void failure(fcitx::InputContext *, bool recover);

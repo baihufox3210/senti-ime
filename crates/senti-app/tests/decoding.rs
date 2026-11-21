@@ -40,3 +40,71 @@ fn decoded_spans_cover_original_keys_and_enter_commits_the_shown_revision() {
         assert!(engine.decode_result().revision > decoded.revision);
     }
 }
+
+#[test]
+fn deferred_word_scores_are_bound_to_the_displayed_revision() {
+    use senti_core::{Candidate, InputMode, PredictionQuery, Predictor, WordModelScore};
+    use senti_engine::EngineBuilder;
+
+    struct Deferred;
+    impl Predictor for Deferred {
+        fn id(&self) -> &'static str {
+            "test-deferred"
+        }
+
+        fn predict(&self, _: &PredictionQuery<'_>) -> Vec<Candidate> {
+            Vec::new()
+        }
+
+        fn rank_word(
+            &self,
+            raw: &str,
+            _: &str,
+            _: &str,
+            words: &[&str],
+            _: std::time::Instant,
+        ) -> Option<WordModelScore> {
+            if raw != "53g4" || !words.contains(&"指示") {
+                return None;
+            }
+            let (send, receive) = std::sync::mpsc::channel();
+            send.send(Some(
+                words
+                    .iter()
+                    .map(|word| if *word == "指示" { 10.0 } else { 0.0 })
+                    .collect(),
+            ))
+            .unwrap();
+            Some(WordModelScore::Deferred(receive))
+        }
+    }
+
+    for complete in [true, false] {
+        let mut engine = EngineBuilder::new()
+            .mode(InputMode::Mixed)
+            .predictor(senti_predictors::ZhuyinPredictor::default())
+            .predictor(Deferred)
+            .build();
+        for c in "53g4".chars() {
+            engine.handle_key(KeyEvent::Char(c));
+        }
+        let pending = engine.view();
+        assert!(pending.model_pending);
+        assert_ne!(pending.converted_preedit, "指示");
+        if complete {
+            engine.poll_word_model(pending.decode_revision);
+            assert_eq!(engine.view().converted_preedit, "指示");
+            assert_eq!(
+                engine.handle_key(KeyEvent::Enter),
+                KeyOutcome::Commit("指示".into())
+            );
+        } else {
+            assert_eq!(
+                engine.handle_key(KeyEvent::Enter),
+                KeyOutcome::Commit(pending.converted_preedit)
+            );
+            engine.poll_word_model(pending.decode_revision);
+            assert!(engine.view().converted_preedit.is_empty());
+        }
+    }
+}

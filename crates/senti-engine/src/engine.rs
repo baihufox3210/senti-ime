@@ -39,6 +39,15 @@ pub(crate) struct Ports {
 
 /// A host-independent smart input method engine.
 ///
+struct DeferredWord {
+    raw: String,
+    before: String,
+    after: String,
+    words: Vec<String>,
+    started: std::time::Instant,
+    scores: std::sync::mpsc::Receiver<Option<Vec<f64>>>,
+}
+
 /// The host feeds [`KeyEvent`]s and inserts whatever [`KeyOutcome::Commit`]
 /// returns; [`InputEngine::view`] describes what to draw.
 pub struct InputEngine {
@@ -71,6 +80,8 @@ pub struct InputEngine {
     /// Whether next-word candidates should be shown while idle.
     association_active: bool,
     last_commit: Option<String>,
+    deferred_word: std::cell::RefCell<Option<DeferredWord>>,
+    word_model_budget: std::cell::Cell<std::time::Duration>,
 }
 
 impl std::fmt::Debug for InputEngine {
@@ -147,6 +158,8 @@ impl InputEngine {
             page: 0,
             association_active: false,
             last_commit: None,
+            deferred_word: std::cell::RefCell::new(None),
+            word_model_budget: std::cell::Cell::new(std::time::Duration::ZERO),
         };
         engine.refresh();
         engine
@@ -158,6 +171,9 @@ impl InputEngine {
 
     /// Process one key event.
     pub fn handle_key(&mut self, key: KeyEvent) -> KeyOutcome {
+        self.deferred_word.take();
+        self.word_model_budget
+            .set(std::time::Duration::from_millis(15));
         if key == KeyEvent::OpenCandidates {
             self.focus_final_chinese_character();
         }
@@ -846,18 +862,30 @@ impl InputEngine {
 
     /// Keep the decoder's key span and candidate set; the local Transformer
     /// contributes only a score to same-reading alternatives.
-    fn rank_with_word_model(&self, raw: &str, before: &str, candidates: &mut [Candidate]) {
+    fn rank_with_word_model(
+        &self,
+        raw: &str,
+        before: &str,
+        after: &str,
+        candidates: &mut [Candidate],
+        lexical_words: Option<&HashSet<String>>,
+    ) {
+        let budget = self.word_model_budget.get();
+        if budget.is_zero() {
+            return;
+        }
         let indices: Vec<_> = candidates
             .iter()
             .enumerate()
             .filter(|(_, candidate)| {
                 candidate.consumed == raw.len()
-                    && matches!(
+                    && (matches!(
                         candidate.source,
                         CandidateSource::Lexicon
                             | CandidateSource::Sentence
                             | CandidateSource::SentenceAlternative
-                    )
+                    ) || (candidate.source == CandidateSource::UserHistory
+                        && lexical_words.is_some_and(|words| words.contains(&candidate.text))))
             })
             .take(6)
             .map(|(index, _)| index)
@@ -869,23 +897,48 @@ impl InputEngine {
             .iter()
             .map(|&i| candidates[i].text.as_str())
             .collect();
-        let Some(scores) = self
-            .ports
-            .predictors
-            .iter()
-            .find_map(|model| model.rank_word(raw, before, &words))
-            .filter(|scores| {
-                scores.len() == indices.len() && scores.iter().all(|score| score.is_finite())
-            })
-        else {
-            return;
-        };
+        let start = std::time::Instant::now();
+        let deadline = start + budget;
+        let score = self.ports.predictors.iter().find_map(|model| {
+            match model.rank_word(raw, before, after, &words, deadline) {
+                Some(senti_core::WordModelScore::Deferred(_)) if self.editor.is_some() => None,
+                score => score,
+            }
+        });
+        self.word_model_budget
+            .set(budget.saturating_sub(start.elapsed()));
+        match score {
+            Some(senti_core::WordModelScore::Ready(scores)) => {
+                Self::apply_word_scores(candidates, &indices, scores);
+            }
+            Some(senti_core::WordModelScore::Deferred(scores)) if self.editor.is_none() => {
+                self.deferred_word.replace(Some(DeferredWord {
+                    raw: raw.to_owned(),
+                    before: before.to_owned(),
+                    after: after.to_owned(),
+                    words: words.into_iter().map(str::to_owned).collect(),
+                    started: start,
+                    scores,
+                }));
+            }
+            _ => {}
+        }
+    }
+
+    fn apply_word_scores(
+        candidates: &mut [Candidate],
+        indices: &[usize],
+        scores: Vec<f64>,
+    ) -> bool {
+        if scores.len() != indices.len() || scores.iter().any(|score| !score.is_finite()) {
+            return false;
+        }
         let base_index = indices[0];
         let baseline = candidates[base_index].score;
         let model_baseline = scores[0];
         let mut winner = base_index;
         let mut best = baseline;
-        for (index, score) in indices.into_iter().zip(scores) {
+        for (&index, score) in indices.iter().zip(scores) {
             let fused = candidates[index].score + 0.20 * (score - model_baseline).clamp(-4.0, 4.0);
             if fused > best {
                 (winner, best) = (index, fused);
@@ -895,6 +948,55 @@ impl InputEngine {
             candidates[base_index].score = candidates[winner].score;
             candidates[winner].score = baseline;
             sort_by_score(candidates);
+            return true;
+        }
+        false
+    }
+
+    fn deferred_word_is_current(&self, pending: &DeferredWord) -> bool {
+        !self.selecting
+            && self.editor.is_none()
+            && self.composition.remaining() == pending.raw
+            && self.following == pending.after
+            && format!("{}{}", self.surrounding, self.composition.selected_text()) == pending.before
+            && pending.started.elapsed() < std::time::Duration::from_millis(250)
+    }
+
+    pub fn poll_word_model(&mut self, revision: u64) {
+        if self.decoded.revision != revision {
+            return;
+        }
+        let Some(pending) = self.deferred_word.take() else {
+            return;
+        };
+        if !self.deferred_word_is_current(&pending) {
+            return;
+        }
+        match pending.scores.try_recv() {
+            Ok(Some(scores)) => {
+                let indices: Option<Vec<_>> = pending
+                    .words
+                    .iter()
+                    .map(|word| {
+                        self.candidates.iter().position(|candidate| {
+                            candidate.text == *word
+                                && candidate.input_mode == Some(InputMode::Zhuyin)
+                                && candidate.consumed == pending.raw.len()
+                        })
+                    })
+                    .collect();
+                if let Some(indices) = indices {
+                    if indices.first() == Some(&0)
+                        && Self::apply_word_scores(&mut self.candidates, &indices, scores)
+                    {
+                        self.decoded = self.decode_current();
+                    }
+                }
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => {
+                self.deferred_word.replace(Some(pending));
+            }
+            _ => {}
         }
     }
 
@@ -1134,12 +1236,10 @@ impl InputEngine {
         if self.mode == InputMode::Mixed
             && mode == InputMode::Zhuyin
             && self.editor.is_none()
+            && input == self.composition.remaining()
             && candidates.first().is_some_and(|candidate| {
                 candidate.consumed == input.len()
-                    && matches!(
-                        candidate.source,
-                        CandidateSource::Lexicon | CandidateSource::Sentence
-                    )
+                    && lexical_words.contains(&candidate.text)
                     && self
                         .user
                         .confirmation_count(mode, &code_for(mode, input), &candidate.text)
@@ -1147,7 +1247,13 @@ impl InputEngine {
                     && !trusted_memory.contains(&candidate.text)
             })
         {
-            self.rank_with_word_model(input, &current_context, &mut candidates);
+            self.rank_with_word_model(
+                input,
+                &current_context,
+                &self.following,
+                &mut candidates,
+                Some(&lexical_words),
+            );
         }
 
         if !input.is_empty()
@@ -1292,6 +1398,12 @@ impl InputEngine {
             .then(|| senti_core::zhuyin::display(self.composition.remaining())),
             selecting: self.selecting,
             candidate_cursor: self.cursor,
+            decode_revision: self.decoded.revision,
+            model_pending: self
+                .deferred_word
+                .borrow()
+                .as_ref()
+                .is_some_and(|pending| self.deferred_word_is_current(pending)),
             composing: self
                 .editor
                 .as_ref()
@@ -1397,6 +1509,7 @@ impl InputEngine {
 
     /// Discard pending input and next-word suggestions without committing or learning.
     pub fn cancel_composition(&mut self) {
+        self.deferred_word.take();
         self.editor = None;
         self.composition.clear();
         self.selecting = false;

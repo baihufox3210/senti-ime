@@ -13,8 +13,8 @@
 //! unit tests, so the `with_default_*` constructors cannot fail at runtime.
 
 mod association;
-mod d512;
-pub use d512::D512Predictor;
+mod word_model;
+pub use word_model::LocalWordPredictor;
 mod neural;
 pub use neural::NeuralPredictor;
 mod english;

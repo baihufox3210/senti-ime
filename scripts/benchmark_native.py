@@ -8,11 +8,12 @@ import subprocess
 import time
 import tempfile
 from datetime import datetime
+from collections import Counter
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--binary', type=Path, default=Path('target/release/senti-host'))
 parser.add_argument('--iterations', type=int, default=20)
-parser.add_argument('--scenario', choices=['zhuyin', 'context'], default='zhuyin')
+parser.add_argument('--scenario', choices=['zhuyin', 'context', 'rerank'], default='zhuyin')
 parser.add_argument('--persistent', action='store_true', help='use isolated real disk storage and include commits')
 parser.add_argument('--memory-entries', type=int, default=0, help='seed up to 512 synthetic vocabulary records (requires --persistent)')
 args = parser.parse_args()
@@ -21,6 +22,15 @@ if not 0 <= args.memory_entries <= 512 or args.memory_entries and not args.persi
 if not 1 <= args.iterations <= 1000:
     parser.error('--iterations must be between 1 and 1000')
 samples = []
+conversions = Counter()
+model_updates = 0
+settle = []
+contexts = [
+    ('我的意思', '想確認一下', '53g4'),
+    ('請依照', '辦理', '53g4'),
+    ('今年台灣的', '表現持續成長', 'ru/ ru4'),
+    ('他是一位優秀的', '，代理過許多藝人', 'ru/ ru4'),
+]
 sequence = 0
 started = time.perf_counter()
 temporary = tempfile.TemporaryDirectory(prefix='senti-benchmark-')
@@ -51,10 +61,17 @@ with subprocess.Popen(command, stdin=subprocess.PIPE,
     if args.persistent:
         send({'type': 'memory_scope', 'scope': 'benchmark:contract'}, False)
     startup_ms = (time.perf_counter() - started) * 1000
-    for _ in range(args.iterations):
+    if args.scenario == 'rerank':
+        time.sleep(2)
+    for iteration in range(args.iterations):
         if args.scenario == 'context':
             send({'type': 'surrounding', 'context': 'bench', 'before_cursor': 'i want ', 'after_cursor': ''}, False)
-        text = 'some' if args.scenario == 'context' else 'su3cl3g4ru,4su3cl3g4ru,4'
+        if args.scenario == 'rerank':
+            before, after, text = contexts[iteration % len(contexts)]
+            send({'type': 'surrounding', 'context': 'bench', 'before_cursor': before,
+                  'after_cursor': after}, False)
+        else:
+            text = 'some' if args.scenario == 'context' else 'su3cl3g4ru,4su3cl3g4ru,4'
         for char in text:
             key = {'name': 'space'} if char == ' ' else {'name': 'character', 'value': char}
             response = send({'type': 'key', 'context': 'bench', 'key': key})
@@ -62,6 +79,22 @@ with subprocess.Popen(command, stdin=subprocess.PIPE,
             if not response['view'].get('suggestion') or response['view']['suggestion'] == ' eats':
                 raise RuntimeError('expected document-context completion is missing')
             send({'type': 'key', 'context': 'bench', 'key': {'name': 'tab'}})
+        if args.scenario == 'rerank':
+            view = response['view']
+            draft = view['converted_preedit']
+            start = time.perf_counter()
+            while view.get('model_pending') and time.perf_counter() - start < .3:
+                time.sleep(.02)
+                view = send({'type': 'poll_word_model', 'context': 'bench',
+                             'revision': view['decode_revision']}, False)['view']
+            if draft != view['converted_preedit']:
+                model_updates += 1
+                settle.append((time.perf_counter() - start) * 1000)
+            draft = view['converted_preedit']
+            final = send({'type': 'key', 'context': 'bench', 'key': {'name': 'enter'}})
+            if final['commit'] != draft:
+                raise RuntimeError('reranked preview changed at commit')
+            conversions[f'{before}〔{draft}〕{after}'] += 1
         if args.persistent and args.scenario == 'zhuyin':
             send({'type': 'key', 'context': 'bench', 'key': {'name': 'enter'}})
         send({'type': 'reset', 'context': 'bench'})
@@ -74,4 +107,8 @@ samples.sort()
 print(json.dumps({'persistent': args.persistent, 'seeded_memory_entries': args.memory_entries, 'scenario': args.scenario, 'requests': len(samples), 'startup_ms': round(startup_ms, 3),
                   'median_ms': round(statistics.median(samples), 3),
                   'p95_ms': round(samples[int((len(samples)-1)*.95)], 3),
-                  'max_ms': round(max(samples), 3)}, indent=2))
+                  'max_ms': round(max(samples), 3),
+                  **({'conversions': conversions, 'deferred_changes': model_updates,
+                      'median_deferred_ms': round(statistics.median(settle), 3) if settle else None}
+                     if args.scenario == 'rerank' else {})}, indent=2,
+                 ensure_ascii=False))
