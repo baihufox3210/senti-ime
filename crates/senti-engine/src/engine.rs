@@ -245,6 +245,13 @@ impl InputEngine {
 
     /// Native mouse/digit selection keeps marked text editable until confirmation.
     pub fn select_native_candidate(&mut self, label: usize) -> KeyOutcome {
+        self.select_marked_candidate(label, false)
+    }
+
+    fn select_marked_candidate(&mut self, label: usize, preview_only: bool) -> KeyOutcome {
+        if preview_only && self.composition.is_empty() && self.editor.is_none() {
+            return KeyOutcome::Consumed;
+        }
         if self.editor.is_some()
             || self.composition.is_empty()
             || !self.mode.uses_candidate_selection()
@@ -257,10 +264,12 @@ impl InputEngine {
         let Some(candidate) = self.candidates.get(index).cloned() else {
             return KeyOutcome::Consumed;
         };
-        if matches!(
-            candidate.source,
-            CandidateSource::Plugin(_) | CandidateSource::Context
-        ) {
+        if !preview_only
+            && matches!(
+                candidate.source,
+                CandidateSource::Plugin(_) | CandidateSource::Context
+            )
+        {
             return self.select_candidate(label);
         }
         let remaining = self.composition.remaining().len();
@@ -327,6 +336,8 @@ impl InputEngine {
                     }) {
                         self.selecting = false;
                         return Some(self.handle_editing(KeyEvent::Space));
+                    } else {
+                        return Some(self.select_marked_candidate(self.cursor + 1, true));
                     }
                     return Some(KeyOutcome::Consumed);
                 }

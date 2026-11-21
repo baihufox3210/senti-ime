@@ -84,7 +84,10 @@ impl InputEngine {
         }
         let already_editing = self.editor.is_some();
         if !already_editing {
-            if !self.has_completed_chinese_tail() || self.converted_preedit().chars().count() == 1 {
+            if !self.has_completed_chinese_tail()
+                || (!self.composition.is_fully_converted()
+                    && self.converted_preedit().chars().count() == 1)
+            {
                 return;
             }
             self.start_editor();
@@ -554,6 +557,22 @@ impl InputEngine {
                         .typing_raw()
                         .is_some_and(|raw| self.mixed_space_completes_reading(raw)) =>
             {
+                let editor = self.editor.as_mut().unwrap();
+                if editor.raw().len() < self.config.max_composition_len {
+                    editor.typing = None;
+                    editor.units.insert(
+                        editor.cursor,
+                        Selection {
+                            raw: " ".into(),
+                            text: " ".into(),
+                            confirmed: false,
+                            learnable: false,
+                            input_mode: Some(InputMode::English),
+                        },
+                    );
+                    editor.cursor += 1;
+                    self.recompute_candidates();
+                }
                 return KeyOutcome::Consumed;
             }
             KeyEvent::Space if self.editor.as_ref().unwrap().typing.is_none() => {

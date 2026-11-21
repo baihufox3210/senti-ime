@@ -161,6 +161,11 @@ impl InputEngine {
     }
 
     pub(super) fn commit_decoded(&mut self, suffix: &str) -> KeyOutcome {
+        self.materialize_decoded();
+        self.commit_composition(suffix, true)
+    }
+
+    pub(super) fn materialize_decoded(&mut self) {
         let decoded = self.decoded.clone();
         // Materialize exactly the segments already shown; never select a new
         // candidate while committing. Existing confirmed selections stay intact.
@@ -173,6 +178,5 @@ impl InputEngine {
                 Some(segment.mode),
             );
         }
-        self.commit_composition(suffix, true)
     }
 }

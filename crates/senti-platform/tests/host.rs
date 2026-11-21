@@ -2245,28 +2245,34 @@ fn legacy_single_letter_english_learning_cannot_split_a_chinese_word() {
 }
 
 #[test]
-fn mixed_space_only_changes_chinese_for_a_supported_first_tone() {
+fn mixed_space_keeps_candidate_choices_and_literals_editable() {
     let mut client = Client::new(AppOptions::ephemeral());
     client.focus("editor", false);
     client.type_text("editor", "su3cl3");
+    client.key("editor", PlatformKey::Down);
     let before = client.key("editor", PlatformKey::Down).view.unwrap();
+    let expected = format!("你{}", before.candidates[before.candidate_cursor].text);
+    assert_ne!(expected, "你好");
     let response = client.key("editor", PlatformKey::Space);
     assert!(response.commit.is_none());
-    let after = response.view.unwrap();
-    assert!(after.selecting);
-    assert_eq!(after.converted_preedit, before.converted_preedit);
-    assert_eq!(after.candidate_cursor, before.candidate_cursor);
-    client.key("editor", PlatformKey::Escape);
-    let response = client.key("editor", PlatformKey::Space);
-    assert!(response.commit.is_none());
-    assert_eq!(response.view.unwrap().converted_preedit, "你好");
+    assert_eq!(response.view.unwrap().converted_preedit, expected);
+    let choices = client.key("editor", PlatformKey::Down).view.unwrap();
+    let original = choices.candidates.iter().find(|c| c.text == "好").unwrap();
+    client.send(Command::Select {
+        context: "editor".into(),
+        label: original.label,
+    });
+
     client.key("editor", PlatformKey::End);
+    let response = client.key("editor", PlatformKey::Space);
+    assert!(response.commit.is_none());
+    assert_eq!(response.view.unwrap().converted_preedit, "你好 ");
     let response = client.type_text("editor", "c9 ");
     assert!(response.commit.is_none());
-    assert_eq!(response.view.unwrap().converted_preedit, "你好嗨");
+    assert_eq!(response.view.unwrap().converted_preedit, "你好 嗨");
     assert_eq!(
         client.key("editor", PlatformKey::Enter).commit.as_deref(),
-        Some("你好嗨")
+        Some("你好 嗨")
     );
 
     client.type_text("editor", "c9");
@@ -2288,12 +2294,32 @@ fn mixed_space_only_changes_chinese_for_a_supported_first_tone() {
 }
 
 #[test]
+fn single_character_can_be_reselected_after_space() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    client.type_text("editor", "su3");
+    client.key("editor", PlatformKey::Down);
+    assert!(client.key("editor", PlatformKey::Space).commit.is_none());
+    let reopened = client.key("editor", PlatformKey::Down).view.unwrap();
+    assert!(reopened.selecting);
+    assert!(reopened.candidates.iter().any(|c| c.text == "妳"));
+    client.key("editor", PlatformKey::Escape);
+    assert_eq!(
+        client
+            .key("editor", PlatformKey::CommitRaw)
+            .commit
+            .as_deref(),
+        Some("su3")
+    );
+}
+
+#[test]
 fn mixed_neutral_particle_can_recover_when_no_exact_reading_exists() {
     let mut client = Client::new(AppOptions::ephemeral());
     for (raw, expected) in [
         ("ji3sk7", "我呢"),
         ("sk7", "呢"),
-        ("ji3sk ", "我sk"),
+        ("ji3sk ", "我sk "),
         ("ji3sk6", "我呢"),
     ] {
         client.focus("editor", false);

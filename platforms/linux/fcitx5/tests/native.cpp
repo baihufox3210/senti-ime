@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
                                        fcitx::EventType::InputContextFocusIn);
         engine->activate(entry, focus);
         for (const auto &[reading, expected] :
-             {std::pair{"ji3sk7", "我呢"}, std::pair{"ji3sk ", "我sk"}}) {
+             {std::pair{"ji3sk7", "我呢"}, std::pair{"ji3sk ", "我sk "}}) {
           type(engine, entry, mixed, reading);
           check(mixed.inputPanel().clientPreedit().toString() == expected,
                 "mixed neutral particle used the wrong Space policy");
@@ -328,9 +328,12 @@ int main(int argc, char **argv) {
             "Down did not focus the final character");
       check(key(engine, entry, first, FcitxKey_space),
             "Space was not handled while selecting");
-      check(first.inputPanel().candidateList() && first.committed.empty() &&
+      check(first.committed.empty() &&
                 first.inputPanel().clientPreedit().toString() == "你好",
-            "unsupported Space closed candidates or committed text");
+            "Space lost the editable candidate");
+      key(engine, entry, first, FcitxKey_Down);
+      check(static_cast<bool>(first.inputPanel().candidateList()),
+            "Space prevented correction of the marked candidate");
       key(engine, entry, first, FcitxKey_End);
       check(key(engine, entry, first, FcitxKey_Left),
             "Left did not edit marked text");

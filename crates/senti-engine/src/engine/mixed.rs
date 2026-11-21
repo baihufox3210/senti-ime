@@ -174,6 +174,17 @@ impl InputEngine {
                     );
                     self.commit_composition(" ", true)
                 } else {
+                    if self.composition.len() < self.config.max_composition_len {
+                        self.materialize_decoded();
+                        self.composition.push(' ');
+                        self.composition.select_with_mode(
+                            1,
+                            " ".into(),
+                            false,
+                            Some(InputMode::English),
+                        );
+                        self.association_active = false;
+                    }
                     KeyOutcome::Consumed
                 }
             }

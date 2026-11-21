@@ -168,9 +168,9 @@ fn first_tone_space_and_tone_correction_still_work() {
     s.type_text("cl3");
     s.press(KeyEvent::Space);
     assert_eq!(s.document(), "醫院");
-    assert_eq!(s.engine().view().converted_preedit, "你好");
+    assert_eq!(s.engine().view().converted_preedit, "你好 ");
     s.press(KeyEvent::Enter);
-    assert_eq!(s.document(), "醫院你好");
+    assert_eq!(s.document(), "醫院你好 ");
 }
 
 #[test]
