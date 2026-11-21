@@ -281,13 +281,16 @@ int main(int argc, char **argv) {
             "Down did not open candidates");
       auto list = first.inputPanel().candidateList();
       check(list && list->size() > 0 &&
-                list->candidate(0).text().toString() == "你好",
+                list->candidate(0).text().toString() == "好",
             "Chinese candidate missing");
       check(list->candidate(0).comment().empty(),
             "candidate contains extra annotations");
       check(first.inputPanel().auxUp().toString().find(" · ") ==
                 std::string::npos,
             "candidate header still contains phonetic metadata");
+      check(first.inputPanel().clientPreedit().cursor() == 3,
+            "Down did not focus the final character");
+      key(engine, entry, first, FcitxKey_End);
       check(key(engine, entry, first, FcitxKey_Left),
             "Left did not edit marked text");
       check(first.inputPanel().clientPreedit().cursor() == 3,
@@ -299,10 +302,9 @@ int main(int argc, char **argv) {
       list = first.inputPanel().candidateList();
       // At the end of an editing session there is no active target candidate.
       check(!list, "end cursor still shows stale candidates");
-      check(key(engine, entry, first, FcitxKey_Left), "Left not consumed");
-      check(!first.inputPanel().candidateList(),
-            "cursor movement did not hide candidates");
       key(engine, entry, first, FcitxKey_Down);
+      check(first.inputPanel().clientPreedit().cursor() == 3,
+            "Down after End did not focus the final character");
       list = first.inputPanel().candidateList();
       check(list && list->size() > 0, "focused character has no candidates");
       check(list->layoutHint() == fcitx::CandidateLayoutHint::Vertical,
@@ -396,6 +398,7 @@ int main(int argc, char **argv) {
       third.updateSurroundingText();
       check(third.inputPanel().candidateList() == stable,
             "unchanged surrounding text rebuilt candidate UI");
+      key(engine, entry, third, FcitxKey_Escape);
       check(key(engine, entry, third, FcitxKey_Return),
             "corrected text not consumed");
       check(third.committed == "你好", "corrected commit failed");
@@ -494,6 +497,7 @@ int main(int argc, char **argv) {
         check(emotion->candidate(i).text().toString() != "😊",
               "emoji appeared in the default candidate list");
       }
+      key(engine, entry, fifth, FcitxKey_Escape);
       key(engine, entry, fifth, FcitxKey_Return);
       check(fifth.committed == "開心", "default emotion word lost its text");
       fifth.committed.clear();
@@ -518,6 +522,15 @@ int main(int argc, char **argv) {
             "correcting the current word damaged the suffix");
       key(engine, entry, fifth, FcitxKey_Return);
       check(fifth.committed == "然後修正", "local correction changed at commit");
+      engine->reset(entry, fifthFocus);
+      fifth.committed.clear();
+      type(engine, entry, fifth, "su3cl3ru,4gl4u vu84su3");
+      key(engine, entry, fifth, FcitxKey_End);
+      type(engine, entry, fifth, "y4ru3");
+      const auto contextual = fifth.inputPanel().clientPreedit().toString();
+      check(contextual.ends_with("自己"), "appended reading did not revise the current word");
+      key(engine, entry, fifth, FcitxKey_Return);
+      check(fifth.committed == contextual, "contextual repair changed at commit");
       engine->deactivate(entry, fifthFocus);
       Client sixth(instance.inputContextManager());
       fcitx::InputContextEvent sixthFocus(

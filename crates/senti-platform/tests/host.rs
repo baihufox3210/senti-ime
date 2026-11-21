@@ -183,16 +183,21 @@ fn native_candidate_selection_paging_and_original_shortcut_work() {
     let mut client = Client::new(AppOptions::ephemeral().with_mode(senti_core::InputMode::Mixed));
     client.focus("editor", false);
     client.type_text("editor", "su3cl3");
-    client.key("editor", PlatformKey::Down);
-    let chosen = client
-        .key("editor", PlatformKey::Down)
-        .view
-        .unwrap()
-        .candidate_cursor;
-    assert_eq!(chosen, 1);
+    let opened = client.key("editor", PlatformKey::Down).view.unwrap();
+    assert_eq!(opened.preedit_cursor, "你".len());
+    assert!(
+        opened
+            .candidates
+            .iter()
+            .all(|c| c.text.chars().count() == 1)
+    );
+    let second = client.key("editor", PlatformKey::Down).view.unwrap();
+    assert_eq!(second.candidate_cursor, 1);
+    let expected = format!("你{}", second.candidates[1].text);
+    assert!(client.key("editor", PlatformKey::Enter).commit.is_none());
     assert_eq!(
         client.key("editor", PlatformKey::Enter).commit.as_deref(),
-        Some("妳好")
+        Some(expected.as_str())
     );
     client.type_text("editor", "u");
     client.key("editor", PlatformKey::Down);
@@ -617,14 +622,15 @@ fn editing_preserves_original_keys_and_focus_isolation() {
 fn native_mouse_and_digit_choices_remain_editable_until_confirmation() {
     let mut client = Client::new(AppOptions::ephemeral().with_mode(senti_core::InputMode::Mixed));
     client.focus("editor", false);
-    let view = client.type_text("editor", "su3cl3").view.unwrap();
+    client.type_text("editor", "su3cl3");
+    client.key("editor", PlatformKey::Home);
+    let view = client.key("editor", PlatformKey::Down).view.unwrap();
     let label = view
         .candidates
         .iter()
         .find(|c| c.text == "妳好")
         .unwrap()
         .label;
-    client.key("editor", PlatformKey::Down);
     let chosen = client.key(
         "editor",
         PlatformKey::Character(char::from_digit(label as u32, 10).unwrap()),
@@ -794,6 +800,67 @@ fn native_word_window_bounds_correction_and_preserves_long_context() {
         client.key("editor", PlatformKey::Enter).commit.as_deref(),
         Some("妳好世界你好世界")
     );
+}
+
+#[test]
+fn completed_word_revises_an_unconfirmed_homophone_during_caret_editing() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut model = senti_core::UserModel::default();
+    for _ in 0..80 {
+        model.record_word(InputMode::Zhuyin, "y4", "字");
+        model.record_confirmation(InputMode::Zhuyin, "y4", "字");
+    }
+    std::fs::write(
+        directory.path().join("user_model.json"),
+        serde_json::to_vec(&model).unwrap(),
+    )
+    .unwrap();
+    let mut client = Client::new(AppOptions::ephemeral().with_data_dir(directory.path()));
+    client.focus("editor", false);
+    let prefix = "su3cl3ru,4gl4u vu84su3";
+    assert_eq!(
+        client
+            .type_text("editor", &format!("{prefix}y4ru3"))
+            .view
+            .unwrap()
+            .converted_preedit,
+        "你好介紹一下你自己"
+    );
+    client.key("editor", PlatformKey::Escape);
+    for manual in [false, true] {
+        client.type_text("editor", prefix);
+        client.key("editor", PlatformKey::End);
+        let old = client.type_text("editor", "y4").view.unwrap();
+        assert!(
+            old.converted_preedit.ends_with('字'),
+            "{}",
+            old.converted_preedit
+        );
+        if manual {
+            let view = client.key("editor", PlatformKey::Down).view.unwrap();
+            let label = view
+                .candidates
+                .iter()
+                .find(|c| c.text == "字")
+                .unwrap()
+                .label;
+            client.send(Command::Select {
+                context: "editor".into(),
+                label,
+            });
+        }
+        let view = client.type_text("editor", "ru3").view.unwrap();
+        let unchanged = old.converted_preedit.strip_suffix('字').unwrap();
+        if manual {
+            assert!(
+                view.converted_preedit
+                    .starts_with(&format!("{unchanged}字"))
+            );
+        } else {
+            assert_eq!(view.converted_preedit, format!("{unchanged}自己"));
+        }
+        client.key("editor", PlatformKey::Escape);
+    }
 }
 
 #[test]
@@ -1038,6 +1105,7 @@ fn legacy_automatic_errors_do_not_override_a_complete_attested_word() {
     let view = client.type_text("editor", "wjo ru04").view.unwrap();
     assert_eq!(view.converted_preedit, "推薦");
     assert_eq!(view.candidates[0].text, "推薦");
+    client.key("editor", PlatformKey::Home);
     client.key("editor", PlatformKey::Down);
     let view = client.send(Command::Ping).view.unwrap();
     let label = view
@@ -1223,6 +1291,7 @@ fn whole_character_deletion_also_applies_after_explicit_candidate_choice() {
     let mut client = Client::new(AppOptions::ephemeral().with_mode(senti_core::InputMode::Mixed));
     client.focus("editor", false);
     client.type_text("editor", "su3cl3");
+    client.key("editor", PlatformKey::Home);
     let view = client.key("editor", PlatformKey::Down).view.unwrap();
     let label = view
         .candidates
@@ -1486,7 +1555,7 @@ fn mixed_period_and_unfinished_phonetics_remain_literal_on_enter() {
         "你好"
     );
     let view = client.key("editor", PlatformKey::Down).view.unwrap();
-    assert_eq!(view.candidates[0].text, "你好");
+    assert_eq!(view.candidates[0].text, "好");
     client.key("editor", PlatformKey::Escape);
     client.key("editor", PlatformKey::Escape);
     let response = client.type_text("editor", "hello.");

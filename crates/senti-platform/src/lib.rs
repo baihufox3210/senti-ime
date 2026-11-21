@@ -443,14 +443,13 @@ impl PlatformHost {
             PlatformKey::Enter => KeyEvent::Enter,
             PlatformKey::Escape if view.composing || view.association => KeyEvent::Escape,
             PlatformKey::Backspace => KeyEvent::Backspace,
-            PlatformKey::Down if !view.candidates.is_empty() => {
+            PlatformKey::Down if view.composing || !view.candidates.is_empty() => {
                 if view.selecting {
                     KeyEvent::CandidateNext
                 } else {
                     KeyEvent::OpenCandidates
                 }
             }
-            PlatformKey::Down if view.composing => return KeyOutcome::Consumed,
             PlatformKey::Up if view.selecting => KeyEvent::CandidatePrevious,
             PlatformKey::Up if view.composing => return KeyOutcome::Consumed,
             PlatformKey::Right | PlatformKey::Left if view.composing || view.selecting => {

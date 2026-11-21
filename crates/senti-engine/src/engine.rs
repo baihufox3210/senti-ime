@@ -158,6 +158,9 @@ impl InputEngine {
 
     /// Process one key event.
     pub fn handle_key(&mut self, key: KeyEvent) -> KeyOutcome {
+        if key == KeyEvent::OpenCandidates {
+            self.focus_final_chinese_character();
+        }
         if self.editor.is_some() {
             return self.handle_editing(key);
         }

@@ -74,6 +74,35 @@ impl InputEngine {
                 })
     }
 
+    pub(super) fn focus_final_chinese_character(&mut self) {
+        if self.mode != InputMode::Mixed {
+            return;
+        }
+        let already_editing = self.editor.is_some();
+        if !already_editing {
+            if !self.has_completed_chinese_tail() || self.converted_preedit().chars().count() == 1 {
+                return;
+            }
+            self.start_editor();
+        }
+        let editor = self.editor.as_mut().unwrap();
+        if editor.typing.is_none()
+            && editor.cursor == editor.units.len()
+            && editor.units.last().is_some_and(|unit| {
+                unit.input_mode == Some(InputMode::Zhuyin)
+                    && unit.text.chars().count() == 1
+                    && senti_core::zhuyin::parse_tolerant(&unit.raw).is_some_and(|syllables| {
+                        syllables.len() == 1 && syllables[0].tone.is_some()
+                    })
+            })
+        {
+            editor.cursor -= 1;
+            self.recompute_candidates();
+        } else if !already_editing {
+            self.editor = None;
+        }
+    }
+
     /// Move within uncommitted text, one Chinese character / Latin scalar at a time.
     pub fn move_preedit_cursor(&mut self, right: bool) -> KeyOutcome {
         if self.composition.is_empty() && self.editor.is_none() {
@@ -386,6 +415,72 @@ impl InputEngine {
         self.composition.clear();
         self.finish_commit(text)
     }
+    fn reflow_inserted_word(&mut self, last: usize) {
+        let editor = self.editor.as_ref().unwrap();
+        let end = last + 1;
+        let editable = editor.units[..end]
+            .iter()
+            .rev()
+            .take(6)
+            .take_while(|unit| {
+                unit.input_mode == Some(InputMode::Zhuyin)
+                    && unit.learnable
+                    && !unit.confirmed
+                    && unit.text.chars().count() == 1
+            })
+            .count();
+        let right = self.editor_right_context(end);
+        for length in 2..=editable {
+            let start = end - length;
+            let raw: String = editor.units[start..end]
+                .iter()
+                .map(|u| u.raw.as_str())
+                .collect();
+            let before: String = self
+                .surrounding
+                .chars()
+                .chain(
+                    editor.units[..start]
+                        .iter()
+                        .flat_map(|unit| unit.text.chars()),
+                )
+                .collect();
+            let query = PredictionQuery {
+                input: &raw,
+                mode: InputMode::Zhuyin,
+                context: &self.context,
+                previous: Some(&before),
+                user: &self.user,
+                limit: self.config.max_candidates,
+            };
+            let candidate = self
+                .ports
+                .predictors
+                .iter()
+                .filter(|predictor| predictor.id() == "zhuyin")
+                .flat_map(|predictor| predictor.predict(&query))
+                .filter(|candidate| {
+                    candidate.source == CandidateSource::Lexicon
+                        && candidate.consumed == raw.len()
+                        && candidate.text.chars().count() == length
+                })
+                .map(|candidate| {
+                    let score = candidate.score + self.right_context_score(&candidate.text, &right);
+                    (score, candidate.text)
+                })
+                .reduce(|best, next| if next.0 > best.0 { next } else { best });
+            if let Some((_, text)) = candidate {
+                for (unit, character) in self.editor.as_mut().unwrap().units[start..end]
+                    .iter_mut()
+                    .zip(text.chars())
+                {
+                    unit.text = character.to_string();
+                }
+                break;
+            }
+        }
+    }
+
     pub(super) fn handle_editing(&mut self, key: KeyEvent) -> KeyOutcome {
         if let Some(outcome) = self.handle_candidate_key(key) {
             return outcome;
@@ -517,6 +612,7 @@ impl InputEngine {
                     };
                 }
                 self.editor.as_mut().unwrap().typing = None;
+                self.reflow_inserted_word(index);
             } else {
                 unit.text = if english || self.mode == InputMode::Mixed {
                     raw

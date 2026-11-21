@@ -151,7 +151,7 @@ mod tests {
             AppOptions::ephemeral().with_mode(senti_core::InputMode::Mixed),
         ));
         s.type_text("su3cl3");
-        let second = s.engine().view().candidates[1].text.clone();
+        let mut expected = String::new();
         let actions = frame(
             &ctx,
             &mut ShiftTap::default(),
@@ -160,6 +160,7 @@ mod tests {
                     pressed(Key::ArrowDown),
                     pressed(Key::ArrowDown),
                     pressed(Key::Enter),
+                    pressed(Key::Enter),
                 ],
                 ..Default::default()
             },
@@ -167,8 +168,11 @@ mod tests {
         for action in actions {
             let view = s.engine().view();
             s.press(action.key(view.mode, view.selecting).unwrap());
+            if expected.is_empty() && s.engine().view().selecting {
+                expected = format!("你{}", s.engine().view().candidates[1].text);
+            }
         }
-        assert_eq!(s.document(), second);
+        assert_eq!(s.document(), expected);
         assert_eq!(
             InputAction::Down.key(InputMode::Chinese, false),
             Some(KeyEvent::OpenCandidates)
