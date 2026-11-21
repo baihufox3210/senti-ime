@@ -1870,3 +1870,47 @@ fn mixed_neutral_particle_can_recover_when_no_exact_reading_exists() {
         );
     }
 }
+
+#[test]
+fn learned_english_u_keeps_the_first_tone_of_an_ambiguous_zhuyin_phrase() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut model = senti_core::UserModel::default();
+    model.record_word(InputMode::English, "u", "u");
+    std::fs::write(
+        directory.path().join("user_model.json"),
+        serde_json::to_vec(&model).unwrap(),
+    )
+    .unwrap();
+    let mut client = Client::new(AppOptions::ephemeral().with_data_dir(directory.path()));
+    client.focus("editor", false);
+    for raw in ["u uv, ", "u vu, "] {
+        let view = client.type_text("editor", raw).view.unwrap();
+        assert_eq!(view.converted_preedit, "一些", "{raw:?}");
+        assert_eq!(
+            client.key("editor", PlatformKey::Enter).commit.as_deref(),
+            Some("一些")
+        );
+    }
+    client.type_text("editor", "u uv,");
+    let view = client.key("editor", PlatformKey::Down).view.unwrap();
+    assert_eq!(view.candidates[view.candidate_cursor].text, "一些");
+    assert_eq!(
+        client.key("editor", PlatformKey::Enter).commit.as_deref(),
+        Some("一些")
+    );
+    client.type_text("editor", "up");
+    let view = client.key("editor", PlatformKey::Down).view.unwrap();
+    assert_eq!(view.candidates[view.candidate_cursor].text, "因");
+    assert_eq!(
+        client.key("editor", PlatformKey::Enter).commit.as_deref(),
+        Some("因")
+    );
+    assert_eq!(
+        client
+            .type_text("editor", "g;4vu84jp6")
+            .view
+            .unwrap()
+            .converted_preedit,
+        "上下文"
+    );
+}

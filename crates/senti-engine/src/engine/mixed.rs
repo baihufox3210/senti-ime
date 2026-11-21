@@ -154,6 +154,10 @@ impl InputEngine {
                     return KeyOutcome::Consumed;
                 }
                 if self.mixed_pending_first_tone(raw) {
+                    if unfinished && self.has_exact_zhuyin_word(&format!("{raw} ")) {
+                        self.push_mixed(' ');
+                        return KeyOutcome::Consumed;
+                    }
                     return self.commit_decoded(" ");
                 }
                 let phonetic_first_tone = unfinished
@@ -394,6 +398,32 @@ impl InputEngine {
                 Some(InputMode::English),
             );
         }
+    }
+
+    fn has_exact_zhuyin_word(&self, raw: &str) -> bool {
+        self.collect_for_mode(InputMode::Zhuyin, raw)
+            .iter()
+            .any(|candidate| {
+                candidate.source == CandidateSource::Lexicon && candidate.consumed == raw.len()
+            })
+    }
+
+    // Down is an explicit request for phonetic candidates. When a Latin
+    // spelling is still ambiguous, focus the best full Chinese conversion
+    // on the visible page without changing the default literal preview.
+    pub(super) fn mixed_candidate_cursor(&self) -> usize {
+        let raw = self.composition.remaining();
+        let ambiguous = self.can_defer_mixed_space(raw) || self.mixed_pending_first_tone(raw);
+        if !ambiguous {
+            return 0;
+        }
+        let offset = self.page * self.page_size();
+        self.candidates
+            .iter()
+            .skip(offset)
+            .take(self.page_size())
+            .position(|c| c.input_mode == Some(InputMode::Zhuyin) && c.consumed == raw.len())
+            .unwrap_or(0)
     }
 
     fn can_defer_mixed_space(&self, raw: &str) -> bool {

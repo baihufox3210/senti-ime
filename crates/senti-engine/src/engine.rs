@@ -277,7 +277,12 @@ impl InputEngine {
     fn handle_candidate_key(&mut self, key: KeyEvent) -> Option<KeyOutcome> {
         if key == KeyEvent::OpenCandidates {
             self.selecting = !self.candidates.is_empty();
-            self.cursor = 0;
+            self.cursor =
+                if self.selecting && self.mode == InputMode::Mixed && self.editor.is_none() {
+                    self.mixed_candidate_cursor()
+                } else {
+                    0
+                };
             return Some(KeyOutcome::Consumed);
         }
         if self.selecting {

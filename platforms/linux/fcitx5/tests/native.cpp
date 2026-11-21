@@ -199,6 +199,23 @@ int main(int argc, char **argv) {
                 "mixed neutral particle failed to commit");
           mixed.committed.clear();
         }
+        engine->deactivate(entry, focus);
+        engine->activate(entry, focus);
+        type(engine, entry, mixed, "up");
+        key(engine, entry, mixed, FcitxKey_Down);
+        key(engine, entry, mixed, FcitxKey_Return);
+        check(mixed.committed == "因", "could not select 因 without typing 為");
+        mixed.committed.clear();
+        engine->deactivate(entry, focus);
+        engine->activate(entry, focus);
+        type(engine, entry, mixed, "u uv, ");
+        check(mixed.inputPanel().clientPreedit().toString() == "一些",
+              "transposed first-tone phrase did not convert");
+        key(engine, entry, mixed, FcitxKey_Return);
+        check(mixed.committed == "一些", "first-tone phrase failed to commit");
+        mixed.committed.clear();
+        engine->deactivate(entry, focus);
+        engine->activate(entry, focus);
         type(engine, entry, mixed, "up jo4");
         check(mixed.inputPanel().clientPreedit().toString() == "因為",
               "English up prevented a first-tone dictionary word");
