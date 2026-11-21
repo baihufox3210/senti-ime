@@ -147,6 +147,15 @@ impl InputEngine {
                 let unfinished = zhuyin::parse_tolerant(self.composition.remaining())
                     .is_some_and(|s| s.last().is_some_and(|last| last.tone.is_none()));
                 let raw = self.composition.remaining();
+                // A real multi-syllable dictionary match can disambiguate an
+                // English word and a first tone after the next syllable.
+                if self.can_defer_mixed_space(raw) {
+                    self.push_mixed(' ');
+                    return KeyOutcome::Consumed;
+                }
+                if self.mixed_pending_first_tone(raw) {
+                    return self.commit_decoded(" ");
+                }
                 let phonetic_first_tone = unfinished
                     && self.candidates.iter().any(|c| {
                         c.input_mode == Some(InputMode::Zhuyin)
@@ -322,7 +331,11 @@ impl InputEngine {
             }
             let complete = zhuyin::parse_tolerant(prefix)
                 .is_some_and(|s| !s.is_empty() && s.iter().all(|s| s.tone.is_some()));
-            if !complete {
+            if !complete
+                || prefix
+                    .strip_suffix(' ')
+                    .is_some_and(|word| self.can_defer_mixed_space(word))
+            {
                 continue;
             }
             if let Some(candidate) = self
@@ -378,6 +391,36 @@ impl InputEngine {
                 Some(InputMode::English),
             );
         }
+    }
+
+    fn can_defer_mixed_space(&self, raw: &str) -> bool {
+        if raw.is_empty()
+            || !raw.bytes().all(|b| b.is_ascii_lowercase())
+            || !self.mixed_known_english(raw)
+        {
+            return false;
+        }
+        let marked = format!("{raw} ");
+        self.ports
+            .predictors
+            .iter()
+            .any(|p| p.has_word_continuation(InputMode::Zhuyin, &marked, 6))
+    }
+
+    pub(super) fn mixed_pending_first_tone(&self, raw: &str) -> bool {
+        let Some((first, _)) = raw.split_once(' ') else {
+            return false;
+        };
+        self.can_defer_mixed_space(first)
+            && !zhuyin::parse_tolerant(raw).is_some_and(|syllables| {
+                syllables.len() > 1
+                    && syllables.iter().all(|s| s.tone.is_some())
+                    && self.candidates.iter().any(|c| {
+                        c.input_mode == Some(InputMode::Zhuyin)
+                            && c.source == CandidateSource::Lexicon
+                            && c.consumed == raw.len()
+                    })
+            })
     }
 
     pub(super) fn mixed_known_english(&self, word: &str) -> bool {

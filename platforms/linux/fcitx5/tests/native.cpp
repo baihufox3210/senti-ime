@@ -190,6 +190,13 @@ int main(int argc, char **argv) {
         fcitx::InputContextEvent focus(&mixed,
                                        fcitx::EventType::InputContextFocusIn);
         engine->activate(entry, focus);
+        type(engine, entry, mixed, "up jo4");
+        check(mixed.inputPanel().clientPreedit().toString() == "因為",
+              "English up prevented a first-tone dictionary word");
+        key(engine, entry, mixed, FcitxKey_Return);
+        check(mixed.committed == "因為",
+              "mixed first-tone word failed to commit");
+        mixed.committed.clear();
         type(engine, entry, mixed, "su3cl3qzz");
         check(mixed.inputPanel().clientPreedit().toString() == "你好qzz",
               "invalid phonetic tail reverted Chinese");

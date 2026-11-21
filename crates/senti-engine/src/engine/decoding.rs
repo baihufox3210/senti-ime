@@ -67,7 +67,8 @@ impl InputEngine {
                     false,
                 )
             } else if !matches!(self.mode, InputMode::Mixed | InputMode::Zhuyin)
-                || self.mode == InputMode::Mixed && self.mixed_prefers_english()
+                || self.mode == InputMode::Mixed
+                    && (self.mixed_prefers_english() || self.mixed_pending_first_tone(remaining))
             {
                 (
                     remaining.to_owned(),

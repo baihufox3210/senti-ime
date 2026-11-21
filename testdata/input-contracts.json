@@ -317,5 +317,39 @@
         "document": "不夠智慧"
       }
     ]
+  },
+  {
+    "name": "first-tone-overlaps-english-up",
+    "steps": [
+      {
+        "text": "up ",
+        "preedit": "up "
+      },
+      {
+        "text": "jo4",
+        "preedit": "因為"
+      },
+      {
+        "key": "enter",
+        "document": "因為"
+      },
+      {
+        "text": "up there ",
+        "document": "因為up there "
+      }
+    ]
+  },
+  {
+    "name": "dictionary-memory-verbs",
+    "steps": [
+      {
+        "text": "ru4u45j4",
+        "preedit": "記憶住"
+      },
+      {
+        "key": "enter",
+        "document": "記憶住"
+      }
+    ]
   }
 ]
