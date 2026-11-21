@@ -797,6 +797,55 @@ fn native_word_window_bounds_correction_and_preserves_long_context() {
 }
 
 #[test]
+fn correcting_one_word_keeps_the_next_word_out_of_every_candidate_page() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    let initial = client.type_text("editor", "b06c.4vu. 5/4").view.unwrap();
+    assert_eq!(initial.converted_preedit, "然後修正");
+    client.key("editor", PlatformKey::Home);
+    let first = client.key("editor", PlatformKey::Down).view.unwrap();
+    assert!(
+        first
+            .candidates
+            .iter()
+            .any(|c| c.text == "然後" && !c.partial)
+    );
+
+    let mut page = first;
+    let mut replacement = None;
+    loop {
+        assert!(page.candidates.iter().all(|c| c.text.chars().count() <= 2));
+        if replacement.is_none() {
+            replacement = page
+                .candidates
+                .iter()
+                .find(|c| c.text == "燃")
+                .map(|c| (page.page, c.label));
+        }
+        if page.page + 1 == page.page_count {
+            break;
+        }
+        page = client.key("editor", PlatformKey::PageDown).view.unwrap();
+    }
+    let (target_page, label) = replacement.expect("one-character homophone missing");
+    for _ in target_page..page.page {
+        client.key("editor", PlatformKey::PageUp);
+    }
+    let selected = client
+        .send(Command::Select {
+            context: "editor".into(),
+            label,
+        })
+        .view
+        .unwrap();
+    assert_eq!(selected.converted_preedit, "燃後修正");
+    assert_eq!(
+        client.key("editor", PlatformKey::Enter).commit.as_deref(),
+        Some("燃後修正")
+    );
+}
+
+#[test]
 fn following_context_changes_ranking_without_changing_the_replacement_span() {
     let mut client = Client::new(AppOptions::ephemeral().with_mode(senti_core::InputMode::Mixed));
     client.focus("editor", false);

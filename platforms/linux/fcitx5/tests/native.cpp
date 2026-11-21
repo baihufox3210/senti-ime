@@ -496,6 +496,28 @@ int main(int argc, char **argv) {
       }
       key(engine, entry, fifth, FcitxKey_Return);
       check(fifth.committed == "開心", "default emotion word lost its text");
+      fifth.committed.clear();
+      type(engine, entry, fifth, "b06c.4vu. 5/4");
+      key(engine, entry, fifth, FcitxKey_Home);
+      key(engine, entry, fifth, FcitxKey_Down);
+      auto word = fifth.inputPanel().candidateList();
+      check(word && word->size() > 0, "word candidates unavailable");
+      bool selectedWord = false;
+      for (int i = 0; i < word->size(); ++i) {
+        const auto text = word->candidate(i).text().toString();
+        check(text.find("修") == std::string::npos,
+              "correction menu included the next word");
+        if (text == "然後") {
+          word->candidate(i).select(&fifth);
+          selectedWord = true;
+          break;
+        }
+      }
+      check(selectedWord, "current word was not selectable");
+      check(fifth.inputPanel().clientPreedit().toString() == "然後修正",
+            "correcting the current word damaged the suffix");
+      key(engine, entry, fifth, FcitxKey_Return);
+      check(fifth.committed == "然後修正", "local correction changed at commit");
       engine->deactivate(entry, fifthFocus);
       Client sixth(instance.inputContextManager());
       fcitx::InputContextEvent sixthFocus(

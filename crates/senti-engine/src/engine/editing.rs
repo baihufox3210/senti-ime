@@ -6,6 +6,7 @@ pub(super) struct Editor {
     units: Vec<Selection>,
     cursor: usize,
     typing: Option<usize>,
+    target_end: usize,
     corrections: Vec<(InputMode, String, String, String)>,
 }
 impl Editor {
@@ -27,13 +28,13 @@ impl Editor {
     }
     pub(super) fn target_raw_len(&self) -> usize {
         self.focus().map_or(0, |focus| {
-            self.units[focus..self.window_end(focus)]
+            self.units[focus..self.target_end]
                 .iter()
                 .map(|u| u.raw.len())
                 .sum()
         })
     }
-    fn window_end(&self, focus: usize) -> usize {
+    fn lookahead_end(&self, focus: usize) -> usize {
         if self.typing.is_some() || self.units[focus].input_mode != Some(InputMode::Zhuyin) {
             return focus + 1;
         }
@@ -42,6 +43,7 @@ impl Editor {
             .take(6)
             .take_while(|unit| {
                 unit.input_mode == Some(InputMode::Zhuyin)
+                    && unit.confirmed == self.units[focus].confirmed
                     && senti_core::zhuyin::parse_tolerant(&unit.raw).is_some()
             })
             .count();
@@ -163,6 +165,7 @@ impl InputEngine {
             units,
             cursor,
             typing: None,
+            target_end: cursor,
             corrections: Vec::new(),
         });
     }
@@ -222,45 +225,61 @@ impl InputEngine {
             });
         }
     }
-    pub(super) fn editing_candidates(&self) -> Vec<Candidate> {
-        let Some(editor) = &self.editor else {
-            return Vec::new();
-        };
+    pub(super) fn editing_candidates(&mut self) -> Vec<Candidate> {
+        let editor = self.editor.as_ref().unwrap();
         let Some(index) = editor.focus() else {
             return Vec::new();
         };
-        let unit = &editor.units[index];
-        let mode = unit.input_mode.unwrap_or(self.mode);
-        let end = editor.window_end(index);
-        let raw: String = editor.units[index..end]
+        let mode = editor.units[index].input_mode.unwrap_or(self.mode);
+        let lookahead = &editor.units[index..editor.lookahead_end(index)];
+        let raw: String = lookahead.iter().map(|unit| unit.raw.as_str()).collect();
+        let mut raw_end = 0;
+        let boundaries: Vec<_> = lookahead
             .iter()
-            .map(|u| u.raw.as_str())
+            .map(|unit| {
+                raw_end += unit.raw.len();
+                raw_end
+            })
             .collect();
         let mut candidates = if mode == InputMode::Mixed {
             self.collect_mixed_for_input(&raw)
         } else {
             self.collect_for_mode(mode, &raw)
         };
-        let mut boundaries = Vec::new();
-        let mut consumed = 0;
-        for unit in &editor.units[index..end] {
-            consumed += unit.raw.len();
-            boundaries.push(consumed);
+        // Use the displayed word and its reading to set the replacement span.
+        // A longer alternative may have a valid reading but include the next word.
+        let mut word_end = 1;
+        if mode == InputMode::Zhuyin {
+            let mut displayed = String::new();
+            for (offset, (unit, &consumed)) in lookahead.iter().zip(&boundaries).enumerate() {
+                displayed.push_str(&unit.text);
+                if candidates.iter().any(|candidate| {
+                    candidate.source == CandidateSource::Lexicon
+                        && candidate.consumed == consumed
+                        && candidate.text == displayed
+                }) {
+                    word_end = offset + 1;
+                }
+            }
+            if word_end < lookahead.len() {
+                candidates = self.collect_for_mode(mode, &raw[..boundaries[word_end - 1]]);
+            }
+        }
+        for candidate in &mut candidates {
+            if let Some(length) = boundaries[..word_end]
+                .iter()
+                .position(|&end| end == candidate.consumed)
+            {
+                let right = self.editor_right_context(index + length + 1);
+                candidate.score += self.right_context_score(&candidate.text, &right);
+            }
         }
         candidates.retain(|candidate| {
-            boundaries.contains(&candidate.consumed)
+            boundaries[..word_end].contains(&candidate.consumed)
                 && !(candidate.source == CandidateSource::Sentence
                     && candidate.text.chars().count() > 1)
         });
-        for candidate in &mut candidates {
-            let length = boundaries
-                .iter()
-                .position(|&end| end == candidate.consumed)
-                .unwrap()
-                + 1;
-            let right = self.editor_right_context(index + length);
-            candidate.score += self.right_context_score(&candidate.text, &right);
-        }
+        self.editor.as_mut().unwrap().target_end = index + word_end;
         sort_by_score(&mut candidates);
         candidates
     }
@@ -280,7 +299,7 @@ impl InputEngine {
         };
         let editor = self.editor.as_mut().unwrap();
         if let Some(focus) = editor.focus() {
-            let window_end = editor.window_end(focus);
+            let window_end = editor.target_end;
             let mut consumed = 0;
             let mut end = focus;
             while end < window_end && consumed < candidate.consumed {
