@@ -781,6 +781,7 @@ impl InputEngine {
             );
         }
         if self.memory.profile != "default" {
+            self.remember_confirmed_zhuyin_phrases(selections);
             return;
         }
         let mut previous = self.last_commit.clone();
@@ -1074,10 +1075,12 @@ impl InputEngine {
             .memory
             .iter(&self.memory.profile, self.ports.clock.now())
             .filter(|e| {
-                matches!(
-                    e.kind,
-                    senti_core::MemoryKind::Confirmed | senti_core::MemoryKind::Correction
-                ) && e.mode == mode
+                self.memory_enabled()
+                    && matches!(
+                        e.kind,
+                        senti_core::MemoryKind::Confirmed | senti_core::MemoryKind::Correction
+                    )
+                    && e.mode == mode
                     && e.code == code_for(mode, input)
                     && e.accepts >= 2
             })

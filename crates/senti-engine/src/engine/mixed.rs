@@ -261,6 +261,25 @@ impl InputEngine {
         if self.composition.len() >= self.config.max_composition_len {
             return;
         }
+        // Keep a recalled name together when the next syllable starts.
+        if let Some(word) = self.decoded.segments.last().filter(|segment| {
+            segment.mode == InputMode::Zhuyin
+                && segment.complete
+                && segment.raw_start == self.composition.len() - raw.len()
+                && segment.raw_end == self.composition.len()
+                && segment.text.chars().count() >= 2
+                && segment.source == CandidateSource::UserHistory.label()
+                && self.is_confirmed_zhuyin_word(raw, &segment.text)
+                && !self.has_confirmed_zhuyin_prefix(&format!("{raw}{c}"))
+        }) {
+            // This remains automatic; it must not create a new confirmation.
+            self.composition.select_with_mode(
+                raw.len(),
+                word.text.clone(),
+                false,
+                Some(InputMode::Zhuyin),
+            );
+        }
         self.association_active = false;
         self.composition.push(c);
         if self

@@ -133,6 +133,37 @@ impl InputEngine {
         }
         recorded
     }
+    /// A name may be assembled by picking each character at the caret.
+    /// Remember the joined reading only across deliberate, adjacent picks.
+    pub(super) fn remember_confirmed_zhuyin_phrases(&mut self, selections: &[Selection]) {
+        if !self.memory_enabled() {
+            return;
+        }
+        let confirmed = |unit: &Selection| {
+            unit.confirmed && unit.learnable && unit.input_mode == Some(InputMode::Zhuyin)
+        };
+        for phrase in selections.chunk_by(|a, b| confirmed(a) && confirmed(b)) {
+            if !(2..=6).contains(&phrase.len()) {
+                continue;
+            }
+            let raw: String = phrase.iter().map(|unit| unit.raw.as_str()).collect();
+            let text: String = phrase.iter().map(|unit| unit.text.as_str()).collect();
+            let valid = senti_core::zhuyin::parse_tolerant(&raw).is_some_and(|syllables| {
+                (2..=6).contains(&syllables.len())
+                    && syllables.len() == text.chars().count()
+                    && syllables.iter().all(|syllable| syllable.tone.is_some())
+            });
+            if valid {
+                self.remember(
+                    MemoryKind::Confirmed,
+                    InputMode::Zhuyin,
+                    &code_for(InputMode::Zhuyin, &raw),
+                    &text,
+                );
+            }
+        }
+    }
+
     pub(super) fn remember_correction(
         &mut self,
         mode: InputMode,
@@ -216,6 +247,37 @@ impl InputEngine {
         }
         text
     }
+    pub(super) fn is_confirmed_zhuyin_word(&self, raw: &str, text: &str) -> bool {
+        if !self.memory_enabled() || self.memory.profile == "default" {
+            return false;
+        }
+        let code = code_for(InputMode::Zhuyin, raw);
+        self.memory
+            .iter(&self.memory.profile, self.ports.clock.now())
+            .any(|entry| {
+                entry.kind == MemoryKind::Confirmed
+                    && entry.mode == InputMode::Zhuyin
+                    && entry.accepts >= 2
+                    && entry.code == code
+                    && entry.text == text
+            })
+    }
+
+    pub(super) fn has_confirmed_zhuyin_prefix(&self, raw: &str) -> bool {
+        if !self.memory_enabled() || self.memory.profile == "default" {
+            return false;
+        }
+        let code = code_for(InputMode::Zhuyin, raw);
+        self.memory
+            .iter(&self.memory.profile, self.ports.clock.now())
+            .any(|entry| {
+                entry.kind == MemoryKind::Confirmed
+                    && entry.mode == InputMode::Zhuyin
+                    && entry.accepts >= 2
+                    && entry.code.starts_with(&code)
+            })
+    }
+
     pub(super) fn memory_candidates(&self, mode: InputMode, input: &str) -> Vec<Candidate> {
         if !self.memory_enabled() || input.is_empty() || self.memory.profile == "default" {
             return Vec::new();

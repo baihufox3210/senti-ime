@@ -84,7 +84,7 @@ impl InputEngine {
             return;
         };
         let count = syllables.len();
-        if count <= 2 {
+        if count <= 2 || (count <= 6 && self.has_confirmed_zhuyin_prefix(&raw)) {
             return;
         }
         let complete = syllables.iter().all(|s| s.tone.is_some());

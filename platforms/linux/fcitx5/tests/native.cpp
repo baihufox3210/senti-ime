@@ -639,6 +639,33 @@ int main(int argc, char **argv) {
         memoryAction->menu()->actions().front()->activate(&managed);
         check(memoryAction->menu()->actions().size() == 1,
               "native memory clear did not refresh the menu");
+        for (int repetition = 0; repetition < 2; ++repetition) {
+          managed.committed.clear();
+          type(engine, entry, managed, "j;6vul3au/6");
+          key(engine, entry, managed, FcitxKey_Home);
+          for (const std::string_view character : {"王", "曉", "鳴"}) {
+            key(engine, entry, managed, FcitxKey_Down);
+            bool found = false;
+            while (auto words = managed.inputPanel().candidateList()) {
+              for (int i = 0; i < words->size(); ++i) {
+                if (words->candidate(i).text().toString() == character) {
+                  words->candidate(i).select(&managed);
+                  found = true;
+                  break;
+                }
+              }
+              if (found || !words->toPageable()->hasNext())
+                break;
+              key(engine, entry, managed, FcitxKey_Page_Down);
+            }
+            check(found, "could not choose a character in the name");
+          }
+          key(engine, entry, managed, FcitxKey_Return);
+          check(managed.committed == "王曉鳴", "selected name did not commit");
+        }
+        type(engine, entry, managed, "j;6vul3au/6");
+        check(managed.inputPanel().clientPreedit().toString() == "王曉鳴",
+              "learned name was split during native composition");
         engine->deactivate(entry, focus);
       }
     }

@@ -1589,6 +1589,111 @@ fn mixed_period_and_unfinished_phonetics_remain_literal_on_enter() {
 }
 
 #[test]
+fn individually_confirmed_name_is_recalled_as_one_word_after_restart() {
+    let directory = tempfile::tempdir().unwrap();
+    let options = || AppOptions::ephemeral().with_data_dir(directory.path());
+    let raw = "j;6vul3au/6";
+    let scope = "app:editor";
+    {
+        let mut client = Client::new(options());
+        client.focus("editor", false);
+        assert!(
+            client
+                .send(Command::MemoryScope {
+                    scope: scope.into()
+                })
+                .ok
+        );
+        for _ in 0..2 {
+            client.type_text("editor", raw);
+            client.key("editor", PlatformKey::Home);
+            for character in ["王", "曉", "鳴"] {
+                let mut view = client.key("editor", PlatformKey::Down).view.unwrap();
+                loop {
+                    if let Some(candidate) = view.candidates.iter().find(|c| c.text == character) {
+                        client.send(Command::Select {
+                            context: "editor".into(),
+                            label: candidate.label,
+                        });
+                        break;
+                    }
+                    assert!(view.page + 1 < view.page_count, "missing {character}");
+                    view = client.key("editor", PlatformKey::PageDown).view.unwrap();
+                }
+            }
+            assert_eq!(
+                client.key("editor", PlatformKey::Enter).commit.as_deref(),
+                Some("王曉鳴")
+            );
+        }
+        assert!(client.send(Command::MemoryFlush).ok);
+        let entries = client.send(Command::MemoryList).memory.unwrap();
+        assert!(
+            entries
+                .iter()
+                .any(|entry| entry.text == "王曉鳴" && entry.accepts == 2)
+        );
+        assert!(
+            !entries
+                .iter()
+                .any(|entry| entry.kind == senti_core::MemoryKind::Commit)
+        );
+    }
+
+    let mut client = Client::new(options());
+    client.focus("editor", false);
+    assert!(
+        client
+            .send(Command::MemoryScope {
+                scope: scope.into()
+            })
+            .ok
+    );
+    assert_eq!(
+        client
+            .type_text("editor", raw)
+            .view
+            .unwrap()
+            .converted_preedit,
+        "王曉鳴"
+    );
+    client.key("editor", PlatformKey::Escape);
+    assert_eq!(
+        client
+            .type_text("editor", &format!("su3cl3{raw}"))
+            .view
+            .unwrap()
+            .converted_preedit,
+        "你好王曉鳴"
+    );
+    client.key("editor", PlatformKey::Escape);
+    assert_eq!(
+        client
+            .type_text("editor", &format!("{raw}su3cl3"))
+            .view
+            .unwrap()
+            .converted_preedit,
+        "王曉鳴你好"
+    );
+    client.key("editor", PlatformKey::Escape);
+    assert!(
+        client
+            .send(Command::MemoryScope {
+                scope: "app:other".into()
+            })
+            .ok
+    );
+    assert_ne!(
+        client
+            .type_text("editor", raw)
+            .view
+            .unwrap()
+            .converted_preedit,
+        "王曉鳴"
+    );
+}
+
+#[test]
 fn scoped_confirmed_memory_survives_restart_without_contaminating_other_profiles() {
     let directory = tempfile::tempdir().unwrap();
     let options = || AppOptions {
