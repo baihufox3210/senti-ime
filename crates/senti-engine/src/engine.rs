@@ -313,6 +313,23 @@ impl InputEngine {
                 KeyEvent::Char(c) if selection_digit(c).is_some() => {
                     return Some(self.select_candidate(selection_digit(c).unwrap()));
                 }
+                KeyEvent::Space if self.mode == InputMode::Mixed => {
+                    if self.editor.is_none()
+                        && self.mixed_space_completes_reading(self.composition.remaining())
+                    {
+                        self.selecting = false;
+                        self.push_mixed(' ');
+                        self.refresh();
+                    } else if self.editor.as_ref().is_some_and(|editor| {
+                        editor
+                            .typing_raw()
+                            .is_some_and(|raw| self.mixed_space_completes_reading(raw))
+                    }) {
+                        self.selecting = false;
+                        return Some(self.handle_editing(KeyEvent::Space));
+                    }
+                    return Some(KeyOutcome::Consumed);
+                }
                 KeyEvent::Enter | KeyEvent::Space => {
                     return Some(self.select_index(self.page * self.page_size() + self.cursor));
                 }

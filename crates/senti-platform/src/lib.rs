@@ -423,7 +423,7 @@ impl PlatformHost {
                     .engine
                     .select_native_candidate(c as usize - '0' as usize);
             }
-            if key == PlatformKey::Space {
+            if key == PlatformKey::Space && view.mode != InputMode::Mixed {
                 return self
                     .engine
                     .select_native_candidate(view.candidate_cursor + 1);

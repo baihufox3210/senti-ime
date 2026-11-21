@@ -49,6 +49,10 @@ impl Editor {
             .count();
         focus + count.max(1)
     }
+    pub(super) fn typing_raw(&self) -> Option<&str> {
+        self.typing.map(|index| self.units[index].raw.as_str())
+    }
+
     fn focus(&self) -> Option<usize> {
         self.typing
             .or((self.cursor < self.units.len()).then_some(self.cursor))
@@ -540,6 +544,17 @@ impl InputEngine {
                     editor.cursor -= 1;
                     editor.units.remove(editor.cursor);
                 }
+            }
+            KeyEvent::Space
+                if self.mode == InputMode::Mixed
+                    && !self
+                        .editor
+                        .as_ref()
+                        .unwrap()
+                        .typing_raw()
+                        .is_some_and(|raw| self.mixed_space_completes_reading(raw)) =>
+            {
+                return KeyOutcome::Consumed;
             }
             KeyEvent::Space if self.editor.as_ref().unwrap().typing.is_none() => {
                 return self.commit_editor("", false);

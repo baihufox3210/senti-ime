@@ -154,43 +154,13 @@ impl InputEngine {
             }
             KeyEvent::Enter if !self.composition.is_empty() => self.commit_mixed(""),
             KeyEvent::Space if !self.composition.is_empty() => {
-                let unfinished = zhuyin::parse_tolerant(self.composition.remaining())
-                    .is_some_and(|s| s.last().is_some_and(|last| last.tone.is_none()));
                 let raw = self.composition.remaining();
-                // A real multi-syllable dictionary match can disambiguate an
-                // English word and a first tone after the next syllable.
-                if self.can_defer_mixed_space(raw) {
-                    self.push_mixed(' ');
-                    return KeyOutcome::Consumed;
-                }
-                if self.mixed_pending_first_tone(raw) {
-                    if unfinished && self.has_exact_zhuyin_word(&format!("{raw} ")) {
-                        self.push_mixed(' ');
-                        return KeyOutcome::Consumed;
-                    }
-                    return self.commit_decoded(" ");
-                }
-                let phonetic_first_tone = unfinished
-                    && self.candidates.iter().any(|c| {
-                        c.input_mode == Some(InputMode::Zhuyin)
-                            && c.source == CandidateSource::Lexicon
-                    })
-                    && !self
-                        .collect_for_mode(InputMode::English, raw)
-                        .iter()
-                        .any(|c| {
-                            c.text.eq_ignore_ascii_case(raw)
-                                && (c.source == CandidateSource::Lexicon
-                                    || self.user.confirmation_count(
-                                        InputMode::English,
-                                        &raw.to_lowercase(),
-                                        &c.text,
-                                    ) > 0)
-                        });
-                if unfinished && (!self.mixed_prefers_english() || phonetic_first_tone) {
+                if self.mixed_space_completes_reading(raw) {
                     self.push_mixed(' ');
                     KeyOutcome::Consumed
-                } else if self.mixed_prefers_english() {
+                } else if self.mixed_english_continuation(raw) {
+                    self.commit_decoded(" ")
+                } else if self.mixed_prefers_english() && !self.mixed_pending_first_tone(raw) {
                     // Match pure English mode: Space keeps what was typed.
                     // Completions remain available through explicit selection.
                     let raw = self.composition.remaining().to_owned();
@@ -204,7 +174,7 @@ impl InputEngine {
                     );
                     self.commit_composition(" ", true)
                 } else {
-                    self.commit_mixed("")
+                    KeyOutcome::Consumed
                 }
             }
             KeyEvent::Char(c) => {
@@ -243,7 +213,7 @@ impl InputEngine {
         self.commit_decoded(suffix)
     }
 
-    fn push_mixed(&mut self, c: char) {
+    pub(super) fn push_mixed(&mut self, c: char) {
         let raw = self.composition.remaining();
         // Numeric identifiers are literal alternatives: never eat a digit by
         // applying tone correction to an all-numeric input sequence.
@@ -433,11 +403,33 @@ impl InputEngine {
         }
     }
 
+    pub(super) fn mixed_space_completes_reading(&self, raw: &str) -> bool {
+        let Some(syllables) = zhuyin::parse_tolerant(raw) else {
+            return false;
+        };
+        let Some((last, previous)) = syllables.split_last() else {
+            return false;
+        };
+        if last.tone.is_some() {
+            return false;
+        }
+        let marked = format!("{raw} ");
+        if previous.is_empty() && self.mixed_known_english(raw) {
+            return self.can_defer_mixed_space(raw) && self.has_exact_zhuyin_word(&marked);
+        }
+        self.has_exact_zhuyin_word(&marked)
+            || previous
+                .last()
+                .is_some_and(|syllable| self.has_exact_zhuyin_word(&marked[syllable.end..]))
+    }
+
     fn has_exact_zhuyin_word(&self, raw: &str) -> bool {
         self.collect_for_mode(InputMode::Zhuyin, raw)
             .iter()
             .any(|candidate| {
-                candidate.source == CandidateSource::Lexicon && candidate.consumed == raw.len()
+                candidate.consumed == raw.len()
+                    && (candidate.source == CandidateSource::Lexicon
+                        || self.is_confirmed_zhuyin_word(raw, &candidate.text))
             })
     }
 

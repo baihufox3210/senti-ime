@@ -225,13 +225,14 @@ int main(int argc, char **argv) {
         fcitx::InputContextEvent focus(&mixed,
                                        fcitx::EventType::InputContextFocusIn);
         engine->activate(entry, focus);
-        for (const auto *reading : {"ji3sk7", "ji3sk "}) {
+        for (const auto &[reading, expected] :
+             {std::pair{"ji3sk7", "我呢"}, std::pair{"ji3sk ", "我sk"}}) {
           type(engine, entry, mixed, reading);
-          check(mixed.inputPanel().clientPreedit().toString() == "我呢",
-                "mixed neutral particle conversion failed");
+          check(mixed.inputPanel().clientPreedit().toString() == expected,
+                "mixed neutral particle used the wrong Space policy");
           key(engine, entry, mixed, FcitxKey_Return);
-          check(mixed.committed == "我呢",
-                "mixed neutral particle failed to commit");
+          check(mixed.committed == expected,
+                "mixed neutral particle preview differed from commit");
           mixed.committed.clear();
         }
         engine->deactivate(entry, focus);
@@ -325,6 +326,11 @@ int main(int argc, char **argv) {
             "candidate header still contains phonetic metadata");
       check(first.inputPanel().clientPreedit().cursor() == 3,
             "Down did not focus the final character");
+      check(key(engine, entry, first, FcitxKey_space),
+            "Space was not handled while selecting");
+      check(first.inputPanel().candidateList() && first.committed.empty() &&
+                first.inputPanel().clientPreedit().toString() == "你好",
+            "unsupported Space closed candidates or committed text");
       key(engine, entry, first, FcitxKey_End);
       check(key(engine, entry, first, FcitxKey_Left),
             "Left did not edit marked text");

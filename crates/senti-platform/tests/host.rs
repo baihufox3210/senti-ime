@@ -2185,12 +2185,55 @@ fn legacy_single_letter_english_learning_cannot_split_a_chinese_word() {
 }
 
 #[test]
+fn mixed_space_only_changes_chinese_for_a_supported_first_tone() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    client.type_text("editor", "su3cl3");
+    let before = client.key("editor", PlatformKey::Down).view.unwrap();
+    let response = client.key("editor", PlatformKey::Space);
+    assert!(response.commit.is_none());
+    let after = response.view.unwrap();
+    assert!(after.selecting);
+    assert_eq!(after.converted_preedit, before.converted_preedit);
+    assert_eq!(after.candidate_cursor, before.candidate_cursor);
+    client.key("editor", PlatformKey::Escape);
+    let response = client.key("editor", PlatformKey::Space);
+    assert!(response.commit.is_none());
+    assert_eq!(response.view.unwrap().converted_preedit, "你好");
+    client.key("editor", PlatformKey::End);
+    let response = client.type_text("editor", "c9 ");
+    assert!(response.commit.is_none());
+    assert_eq!(response.view.unwrap().converted_preedit, "你好嗨");
+    assert_eq!(
+        client.key("editor", PlatformKey::Enter).commit.as_deref(),
+        Some("你好嗨")
+    );
+
+    client.type_text("editor", "c9");
+    assert!(
+        client
+            .key("editor", PlatformKey::Down)
+            .view
+            .unwrap()
+            .selecting
+    );
+    let response = client.key("editor", PlatformKey::Space);
+    assert!(response.commit.is_none());
+    assert_eq!(response.view.unwrap().converted_preedit, "嗨");
+    client.key("editor", PlatformKey::Enter);
+    assert_eq!(
+        client.type_text("editor", "hello ").commit.as_deref(),
+        Some("hello ")
+    );
+}
+
+#[test]
 fn mixed_neutral_particle_can_recover_when_no_exact_reading_exists() {
     let mut client = Client::new(AppOptions::ephemeral());
     for (raw, expected) in [
         ("ji3sk7", "我呢"),
         ("sk7", "呢"),
-        ("ji3sk ", "我呢"),
+        ("ji3sk ", "我sk"),
         ("ji3sk6", "我呢"),
     ] {
         client.focus("editor", false);
