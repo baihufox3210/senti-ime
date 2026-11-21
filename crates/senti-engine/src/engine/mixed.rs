@@ -316,7 +316,10 @@ impl InputEngine {
                 .map_or(0, |s| s.end);
             // "hi" and "go" are also phonetic prefixes. A recognized English
             // suffix may follow fully specified Chinese syllables immediately.
-            if end == 0 || end == raw.len() || !self.mixed_known_english(&raw[end..]) {
+            // A single key after Chinese may start the next syllable. Old
+            // automatic English learning (e.g. u) cannot establish a
+            // boundary here. Wait for more keys to resolve the ambiguity.
+            if end == 0 || raw.len() - end <= 1 || !self.mixed_known_english(&raw[end..]) {
                 return;
             }
         }

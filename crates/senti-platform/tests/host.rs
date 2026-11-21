@@ -1813,3 +1813,41 @@ fn mixed_any_can_complete_a_recent_topic_in_the_current_or_saved_conversation() 
         Some(" apples")
     );
 }
+
+#[test]
+fn legacy_single_letter_english_learning_cannot_split_a_chinese_word() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut user = senti_core::UserModel::default();
+    user.record_word(InputMode::English, "u", "u");
+    user.record_word(InputMode::Zhuyin, "ru4", "記");
+    user.record_confirmation(InputMode::Zhuyin, "ru4", "記");
+    std::fs::write(
+        directory.path().join("user_model.json"),
+        serde_json::to_vec(&user).unwrap(),
+    )
+    .unwrap();
+    let mut client = Client::new(AppOptions::ephemeral().with_data_dir(directory.path()));
+    client.focus("editor", false);
+    for (keys, expected) in [
+        ("ru4", "記"),
+        ("u", "記u"),
+        ("4", "記憶"),
+        ("5j4", "記憶住"),
+    ] {
+        let view = client.type_text("editor", keys).view.unwrap();
+        assert_eq!(view.converted_preedit, expected);
+        assert!(!view.selecting);
+    }
+    assert_eq!(
+        client.key("editor", PlatformKey::Enter).commit.as_deref(),
+        Some("記憶住")
+    );
+    assert_eq!(
+        client
+            .type_text("editor", "su3cl3go")
+            .view
+            .unwrap()
+            .converted_preedit,
+        "你好go"
+    );
+}
