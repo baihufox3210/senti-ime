@@ -47,7 +47,14 @@ def main():
     parser.add_argument('--epochs',type=int,default=10)
     parser.add_argument('--examples-per-epoch',type=int,default=160000)
     parser.add_argument('--seed',type=int,default=4129)
+    parser.add_argument('--embedding', type=int, default=32)
+    parser.add_argument('--hidden', type=int, default=96)
+    parser.add_argument('--context', type=int, default=6)
+    parser.add_argument('--topic', type=int, default=12)
+    parser.add_argument('--warm-start', type=Path)
     args=parser.parse_args()
+    if min(args.embedding, args.hidden, args.context, args.topic, args.epochs, args.examples_per_epoch) < 1:
+        parser.error('model dimensions and training sizes must be positive')
     rng=np.random.default_rng(args.seed)
     train=read_corpus(args.corpus,'train');dev=read_corpus(args.corpus,'dev');test=read_corpus(args.corpus,'test')
     # CC0 dialogue/prose supplement uses a deterministic text-hash split,
@@ -84,7 +91,7 @@ def main():
     chinese=[t for t,n in counts.most_common() if len(t)==1 and '\u3400'<=t<='\u9fff'][:7000]
     punctuation=[t for t,n in counts.most_common() if len(t)==1 and not t.isalnum()][:64]
     vocab=['<bos>','<unk>','<eos>','<num>']+list(dict.fromkeys(english+chinese+punctuation))
-    ids={t:i for i,t in enumerate(vocab)};V=len(vocab);D=32;H=96;C=6;T=12;P=len(POS);BATCH=192;NEG=24
+    ids={t:i for i,t in enumerate(vocab)};V=len(vocab);D=args.embedding;H=args.hidden;C=args.context;T=args.topic;P=len(POS);BATCH=192;NEG=24
     frequencies=np.array([counts.get(t,1) for t in vocab],np.float32)
     weights=1/np.log2(frequencies+2);weights[:4]=0
     noise=frequencies**.75;noise[:2]=0;noise/=noise.sum()
@@ -106,6 +113,26 @@ def main():
         'P':rng.normal(0,.08,(H,P)).astype(np.float32),
         'pb':np.zeros(P,np.float32),
     }
+    if args.warm_start:
+        base = args.warm_start
+        tokens = json.loads((base/'vocab.json').read_text())['tokens']
+        if tokens != vocab:
+            parser.error('warm start requires identical vocabulary and order')
+        _, old_d, old_h, old_c, _, old_p = struct.unpack('<6I', (base/'model.bin').read_bytes()[8:32])
+        if D < old_d or H < old_h or C < old_c or P != old_p:
+            parser.error('warm start requires equal or expanded compatible dimensions')
+        with np.load(base/'training-checkpoint.npz') as old:
+            params['E'][:, :old_d] = old['E']
+            weights[:] = old['topic_weights']
+            params['b'][:old_h] = old['b']
+            params['W'][:, :old_h] = 0
+            params['W'].reshape(C+1,D,H)[C-old_c:, :old_d, :old_h] = old['W'].reshape(old_c+1,old_d,old_h)
+            params['O'][:, :old_h] = old['O']
+            params['O'][:, old_h:] = 0
+            params['P'][:old_h] = old['P']
+            params['P'][old_h:] = 0
+            params['ob'][:] = old['ob']
+            params['pb'][:] = old['pb']
     moments={k:[np.zeros_like(v),np.zeros_like(v)] for k,v in params.items()}
     def forward(x,topic):
         tw=weights[topic];tw=tw/np.maximum(tw.sum(axis=1,keepdims=True),1e-6)
@@ -160,7 +187,7 @@ def main():
             di=dh@params['W'].T
             np.add.at(gradients['E'],x,di[:,:C*D].reshape(n,C,D))
             np.add.at(gradients['E'],topic,di[:,None,C*D:]*tw[:,:,None])
-            step+=1;lr=.0025*(.85**epoch)
+            step+=1;lr=(.00065 if args.warm_start else .0025)*(.85**epoch)
             for key,param in params.items():
                 grad=np.clip(gradients[key],-1,1)
                 m,v=moments[key];m*=.9;m+=.1*grad;v*=.999;v+=.001*grad*grad
@@ -176,6 +203,7 @@ def main():
     (args.output/'model.bin').write_bytes(binary)
     (args.output/'vocab.json').write_text(json.dumps({'tokens':vocab,'pos':POS},ensure_ascii=False,separators=(',',':'))+'\n')
     report={'architecture':f'context{C} + idf-topic{T} embedding{D} -> tanh{H} -> sampled-softmax word head + supervised POS head',
+        'warm_start_sha256':hashlib.sha256((args.warm_start/'model.bin').read_bytes()).hexdigest() if args.warm_start else None,
         'seed':args.seed,'epochs':args.epochs,'examples_per_epoch':args.examples_per_epoch,'vocabulary':V,
         'examples':dict(zip(['train','dev','test'],[len(d[2]) for d in datasets])),
         'validation':evaluate(eval_sets[0]),'test':evaluate(eval_sets[1]),'history':history,
