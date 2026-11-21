@@ -8,7 +8,17 @@ impl InputEngine {
     }
 
     pub(super) fn collect_mixed_for_input(&self, input: &str) -> Vec<Candidate> {
-        let mut candidates = if input.is_empty() || zhuyin::parse_tolerant(input).is_some() {
+        let mut candidates = if self.can_defer_mixed_space(input) {
+            let marked = format!("{input} ");
+            self.collect_for_mode(InputMode::Zhuyin, &marked)
+                .into_iter()
+                .filter(|candidate| candidate.consumed == marked.len())
+                .map(|mut candidate| {
+                    candidate.consumed = input.len();
+                    candidate
+                })
+                .collect()
+        } else if input.is_empty() || zhuyin::parse_tolerant(input).is_some() {
             self.collect_for_mode(InputMode::Zhuyin, input)
         } else {
             Vec::new()
@@ -413,15 +423,15 @@ impl InputEngine {
     // on the visible page without changing the default literal preview.
     pub(super) fn mixed_candidate_cursor(&self) -> usize {
         let raw = self.composition.remaining();
-        let ambiguous = self.can_defer_mixed_space(raw) || self.mixed_pending_first_tone(raw);
-        if !ambiguous {
+        let unmarked = self.can_defer_mixed_space(raw);
+        if !unmarked && !self.mixed_pending_first_tone(raw) {
             return 0;
         }
         let offset = self.page * self.page_size();
-        self.candidates
+        let visible =
+            &self.candidates[offset..self.candidates.len().min(offset + self.page_size())];
+        visible
             .iter()
-            .skip(offset)
-            .take(self.page_size())
             .position(|c| c.input_mode == Some(InputMode::Zhuyin) && c.consumed == raw.len())
             .unwrap_or(0)
     }
