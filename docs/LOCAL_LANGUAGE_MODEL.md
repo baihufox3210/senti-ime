@@ -112,3 +112,35 @@ MemoryProfile 留白時依應用程式分開保存已確認用詞；設定例如
 混打中的單獨 `up` 按 ↓ 會使用一聲讀音列出「因、音」等候選，接續完整讀音 `up jo4` 則轉成「因為」。有舊英文學習紀錄時，`u uv, ` 的最後空白在詞庫確認完整讀音後仍是一聲，轉成「一些」。未補最後空白時，可用 ↓ 選擇詞庫候選。
 
 擴大後的 v3 及同音字比較收錄在 [v3 研究模型](../models/tiny-ime-v3/README.md)。本次預設版使用通過既有回歸的 v2。
+
+## 受限候選的模型比較
+
+從 UD Chinese-GSD test 檔挑出前一字和目標字都有唯一注音、且各模型共享字表的例子。
+依詞頻取至多 16 個同音候選，共有 1,137 題的正解在候選內。
+0c 的輸入是兩音節，固定第一個字，再對第二個字評分。v2 與 v3 把同一個已知字放在前文末尾。
+同一批題目的詞頻首選是 51.63%。
+
+| 模型 | 純模型首選正確率 |
+| --- | ---: |
+| v2 | 75.73% |
+| v3 | 74.93% |
+| 0c D512 Q4 | 84.87% |
+
+0c 使用官方量化權重，在 Ryzen 5 7500F 上以 ONNX Runtime、2 條執行緒評分。
+先在其中 256 題確認共用前綴的批次評分與逐候選評分結果相符，再對完整 1,137 題測量批次速度。
+整組候選評分的 p50 是 4.33 ms，p95 是 8.34 ms。這適用於本測試中只有最後一字不同的候選。本測試只量候選內排名和評分時間。
+詞庫召回、一般多詞候選的速度與原生桌面延遲需另測。外部模型的訓練語料未完整公開，無法排除與測試集重疊。Fcitx5 仍以 v2 即時選字。
+
+另以 UD Chinese-GSD train 的 512 題來校準 0c 分數與詞頻的加權，測試集首選正確率為 84.78%。
+本次保留純模型成績作為比較基準。Qwen3-0.6B 的權重與 CUDA 依賴下載未完成，沒有 LoRA 實測結果。
+
+把官方的 Q4 `model.onnx`、`model.onnx.data` 與 `vocab.json` 放到同一個目錄。在有 NumPy、
+ONNX Runtime 及既有訓練語料的環境執行下列指令。
+
+```sh
+OPENBLAS_NUM_THREADS=2 python scripts/evaluate_zhuyin_homophones.py \
+  models/tiny-ime-v2 models/tiny-ime-v3 --d512 /path/to/d512-q4 --sample-size 1137
+```
+
+公開權重與量化限制見 [0c D512 模型卡](https://huggingface.co/Funmula/0c-sequence-d512)。
+Qwen 權重與授權見 [Qwen3-0.6B 模型卡](https://huggingface.co/Qwen/Qwen3-0.6B)。
