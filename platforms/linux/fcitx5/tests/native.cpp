@@ -362,18 +362,37 @@ int main(int argc, char **argv) {
       list = first.inputPanel().candidateList();
       check(list && list->toPageable() && list->toPageable()->hasNext(),
             "native paging is missing");
-      list->toPageable()->next();
-      check(first.inputPanel().candidateList()->toPageable()->currentPage() ==
-                1,
-            "page navigation did not reach host");
+      const auto cursorBeforePage = first.inputPanel().clientPreedit().cursor();
+      check(key(engine, entry, first, FcitxKey_Right),
+            "Right was not consumed while selecting");
+      auto secondPage = first.inputPanel().candidateList();
+      check(secondPage && secondPage->toPageable()->currentPage() == 1 &&
+                first.inputPanel().clientPreedit().cursor() == cursorBeforePage,
+            "Right did not turn the page in place");
+      check(key(engine, entry, first, FcitxKey_Up), "Up was not consumed");
+      auto previousPage = first.inputPanel().candidateList();
+      check(previousPage && previousPage->toPageable()->currentPage() == 0 &&
+                previousPage->cursorIndex() == previousPage->size() - 1,
+            "Up did not cross to the last candidate on page one");
+      check(key(engine, entry, first, FcitxKey_Down), "Down was not consumed");
+      check(first.inputPanel().candidateList()->toPageable()->currentPage() == 1,
+            "Down did not cross to page two");
+      check(key(engine, entry, first, FcitxKey_KP_Prior),
+            "keypad PageUp was not consumed");
+      check(first.inputPanel().candidateList()->toPageable()->currentPage() == 0,
+            "keypad PageUp did not reach page one");
+      check(key(engine, entry, first, FcitxKey_Page_Down),
+            "PageDown was not consumed");
+      check(first.inputPanel().candidateList()->toPageable()->currentPage() == 1,
+            "PageDown did not reach page two");
       auto clicked = first.inputPanel().candidateList();
       auto chosen = clicked->candidate(0).text().toString();
-      clicked->candidate(0).select(&first);
+      check(key(engine, entry, first, FcitxKey_1), "page-two digit was not consumed");
       check(first.inputPanel().clientPreedit().toString() == chosen,
-            "mouse choice did not remain editable");
+            "keyboard choice from page two did not remain editable");
       key(engine, entry, first, FcitxKey_Return);
       check(first.committed == "你好hello " + chosen,
-            "mouse candidate selection failed");
+            "page-two keyboard selection failed");
       type(engine, entry, first, "su3");
       check(!key(engine, entry, first, FcitxKey_c, fcitx::KeyState::Ctrl),
             "Ctrl+C was swallowed");

@@ -365,15 +365,19 @@ void Engine::keyEvent(const fcitx::InputMethodEntry &, fcitx::KeyEvent &event) {
       name = "tab";
       break;
     case FcitxKey_Up:
+    case FcitxKey_KP_Up:
       name = "up";
       break;
     case FcitxKey_Down:
+    case FcitxKey_KP_Down:
       name = "down";
       break;
     case FcitxKey_Left:
+    case FcitxKey_KP_Left:
       name = "left";
       break;
     case FcitxKey_Right:
+    case FcitxKey_KP_Right:
       name = "right";
       break;
     case FcitxKey_Home:
@@ -386,9 +390,11 @@ void Engine::keyEvent(const fcitx::InputMethodEntry &, fcitx::KeyEvent &event) {
       name = "delete";
       break;
     case FcitxKey_Page_Up:
+    case FcitxKey_KP_Prior:
       name = "page_up";
       break;
     case FcitxKey_Page_Down:
+    case FcitxKey_KP_Next:
       name = "page_down";
       break;
     case FcitxKey_Shift_L:

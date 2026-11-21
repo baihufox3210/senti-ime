@@ -200,7 +200,23 @@ fn native_candidate_selection_paging_and_original_shortcut_work() {
         Some(expected.as_str())
     );
     client.type_text("editor", "u");
-    client.key("editor", PlatformKey::Down);
+    let first = client.key("editor", PlatformKey::Down).view.unwrap();
+    assert!(first.page_count >= 2);
+    let next = client.key("editor", PlatformKey::Right).view.unwrap();
+    assert_eq!((next.page, next.candidate_cursor), (1, 0));
+    assert!(next.selecting);
+    assert_eq!(next.preedit_cursor, first.preedit_cursor);
+    let previous = client.key("editor", PlatformKey::Up).view.unwrap();
+    assert_eq!(
+        (previous.page, previous.candidate_cursor),
+        (0, first.candidates.len() - 1)
+    );
+    let next = client.key("editor", PlatformKey::Down).view.unwrap();
+    assert_eq!((next.page, next.candidate_cursor), (1, 0));
+    assert_eq!(
+        client.key("editor", PlatformKey::Left).view.unwrap().page,
+        0
+    );
     assert_eq!(
         client
             .key("editor", PlatformKey::PageDown)

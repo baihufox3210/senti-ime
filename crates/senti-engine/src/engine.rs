@@ -317,18 +317,16 @@ impl InputEngine {
                     return Some(self.select_index(self.page * self.page_size() + self.cursor));
                 }
                 KeyEvent::CandidateNext | KeyEvent::CandidatePrevious => {
-                    let count = self
-                        .candidates
-                        .len()
-                        .saturating_sub(self.page * self.page_size())
-                        .min(self.page_size());
-                    if count > 0 {
-                        self.cursor = if key == KeyEvent::CandidateNext {
-                            (self.cursor + 1) % count
-                        } else {
-                            (self.cursor + count - 1) % count
-                        };
-                    }
+                    let page_size = self.page_size();
+                    let index = self.page * page_size + self.cursor;
+                    let last = self.candidates.len().saturating_sub(1);
+                    let next = if key == KeyEvent::CandidateNext {
+                        (index + 1).min(last)
+                    } else {
+                        index.saturating_sub(1)
+                    };
+                    self.page = next / page_size;
+                    self.cursor = next % page_size;
                     return Some(KeyOutcome::Consumed);
                 }
                 KeyEvent::PageUp | KeyEvent::PageDown => {

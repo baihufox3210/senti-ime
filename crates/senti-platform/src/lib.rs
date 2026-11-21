@@ -428,6 +428,11 @@ impl PlatformHost {
                     .engine
                     .select_native_candidate(view.candidate_cursor + 1);
             }
+            match key {
+                PlatformKey::Left => return self.engine.handle_key(KeyEvent::PageUp),
+                PlatformKey::Right => return self.engine.handle_key(KeyEvent::PageDown),
+                _ => {}
+            }
         }
         if view.composing
             && key == PlatformKey::Space
@@ -463,19 +468,6 @@ impl PlatformHost {
             }
             PlatformKey::Up if view.selecting => KeyEvent::CandidatePrevious,
             PlatformKey::Up if view.composing => return KeyOutcome::Consumed,
-            PlatformKey::Right | PlatformKey::Left if view.composing || view.selecting => {
-                if view.mode.uses_candidate_selection() {
-                    if key == PlatformKey::Right {
-                        KeyEvent::CandidateNext
-                    } else {
-                        KeyEvent::CandidatePrevious
-                    }
-                } else if key == PlatformKey::Right {
-                    KeyEvent::PageDown
-                } else {
-                    KeyEvent::PageUp
-                }
-            }
             PlatformKey::PageUp | PlatformKey::PageDown if !view.candidates.is_empty() => {
                 if !view.selecting {
                     return KeyOutcome::Consumed;
