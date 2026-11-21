@@ -17,8 +17,8 @@ use senti_core::{AppKind, Clock, InputMode};
 use senti_engine::{EngineBuilder, EngineConfig, InputEngine};
 use senti_plugins::builtin_plugins;
 use senti_predictors::{
-    AssociationPredictor, EnglishPredictor, NeuralPredictor, PinyinPredictor, UserHistoryPredictor,
-    ZhuyinPredictor,
+    AssociationPredictor, D512Predictor, EnglishPredictor, NeuralPredictor, PinyinPredictor,
+    UserHistoryPredictor, ZhuyinPredictor,
 };
 use senti_storage::JsonFileStore;
 
@@ -131,6 +131,21 @@ pub fn build_engine(options: AppOptions) -> InputEngine {
         Some(clock) => builder.boxed_clock(clock),
         None => builder.clock(SystemClock),
     };
+    let configured_model = std::env::var_os("SENTI_IME_D512_MODEL").map(PathBuf::from);
+    let user_model = options
+        .persistence
+        .model_path()
+        .map(|path| path.with_file_name("d512"));
+    let packaged_model = std::env::current_exe()
+        .ok()
+        .map(|path| path.with_file_name("d512"));
+    if let Some(predictor) = [configured_model, user_model, packaged_model]
+        .iter()
+        .flatten()
+        .find_map(|path| D512Predictor::open(path))
+    {
+        builder = builder.predictor(predictor);
+    }
     if let Some(path) = options.persistence.model_path() {
         builder = builder
             .memory_store(senti_storage::JsonMemoryStore::new(

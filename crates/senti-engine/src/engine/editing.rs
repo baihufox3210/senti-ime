@@ -453,7 +453,7 @@ impl InputEngine {
                 user: &self.user,
                 limit: self.config.max_candidates,
             };
-            let candidate = self
+            let mut candidates: Vec<_> = self
                 .ports
                 .predictors
                 .iter()
@@ -464,15 +464,37 @@ impl InputEngine {
                         && candidate.consumed == raw.len()
                         && candidate.text.chars().count() == length
                 })
-                .map(|candidate| {
-                    let score = candidate.score + self.right_context_score(&candidate.text, &right);
-                    (score, candidate.text)
-                })
-                .reduce(|best, next| if next.0 > best.0 { next } else { best });
-            if let Some((_, text)) = candidate {
+                .collect();
+            for candidate in &mut candidates {
+                candidate.score += self
+                    .ports
+                    .predictors
+                    .iter()
+                    .map(|predictor| {
+                        predictor.context_score(Some(&before), &candidate.text, Some(&right))
+                    })
+                    .sum::<f64>();
+            }
+            sort_by_score(&mut candidates);
+            if let Some(best) = candidates.first() {
+                let current: String = editor.units[start..end]
+                    .iter()
+                    .map(|unit| unit.text.as_str())
+                    .collect();
+                if !candidates.iter().any(|candidate| candidate.text == current) {
+                    candidates.push(Candidate::new(
+                        current,
+                        raw.len(),
+                        best.score - 0.15,
+                        CandidateSource::SentenceAlternative,
+                    ));
+                }
+                self.rank_with_word_model(&raw, &before, &mut candidates);
+            }
+            if let Some(candidate) = candidates.first() {
                 for (unit, character) in self.editor.as_mut().unwrap().units[start..end]
                     .iter_mut()
-                    .zip(text.chars())
+                    .zip(candidate.text.chars())
                 {
                     unit.text = character.to_string();
                 }

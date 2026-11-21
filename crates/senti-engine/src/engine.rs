@@ -844,6 +844,60 @@ impl InputEngine {
         self.decoded = self.decode_current();
     }
 
+    /// Keep the decoder's key span and candidate set; the local Transformer
+    /// contributes only a score to same-reading alternatives.
+    fn rank_with_word_model(&self, raw: &str, before: &str, candidates: &mut [Candidate]) {
+        let indices: Vec<_> = candidates
+            .iter()
+            .enumerate()
+            .filter(|(_, candidate)| {
+                candidate.consumed == raw.len()
+                    && matches!(
+                        candidate.source,
+                        CandidateSource::Lexicon
+                            | CandidateSource::Sentence
+                            | CandidateSource::SentenceAlternative
+                    )
+            })
+            .take(6)
+            .map(|(index, _)| index)
+            .collect();
+        if indices.len() < 2 {
+            return;
+        }
+        let words: Vec<_> = indices
+            .iter()
+            .map(|&i| candidates[i].text.as_str())
+            .collect();
+        let Some(scores) = self
+            .ports
+            .predictors
+            .iter()
+            .find_map(|model| model.rank_word(raw, before, &words))
+            .filter(|scores| {
+                scores.len() == indices.len() && scores.iter().all(|score| score.is_finite())
+            })
+        else {
+            return;
+        };
+        let base_index = indices[0];
+        let baseline = candidates[base_index].score;
+        let model_baseline = scores[0];
+        let mut winner = base_index;
+        let mut best = baseline;
+        for (index, score) in indices.into_iter().zip(scores) {
+            let fused = candidates[index].score + 0.20 * (score - model_baseline).clamp(-4.0, 4.0);
+            if fused > best {
+                (winner, best) = (index, fused);
+            }
+        }
+        if winner != base_index {
+            candidates[base_index].score = candidates[winner].score;
+            candidates[winner].score = baseline;
+            sort_by_score(candidates);
+        }
+    }
+
     fn right_context_score(&self, text: &str, right: &str) -> f64 {
         if right.is_empty() {
             return 0.0;
@@ -1077,6 +1131,24 @@ impl InputEngine {
             }
         }
         dedupe(&mut candidates);
+        if self.mode == InputMode::Mixed
+            && mode == InputMode::Zhuyin
+            && self.editor.is_none()
+            && candidates.first().is_some_and(|candidate| {
+                candidate.consumed == input.len()
+                    && matches!(
+                        candidate.source,
+                        CandidateSource::Lexicon | CandidateSource::Sentence
+                    )
+                    && self
+                        .user
+                        .confirmation_count(mode, &code_for(mode, input), &candidate.text)
+                        == 0
+                    && !trusted_memory.contains(&candidate.text)
+            })
+        {
+            self.rank_with_word_model(input, &current_context, &mut candidates);
+        }
 
         if !input.is_empty()
             && mode == InputMode::Chinese

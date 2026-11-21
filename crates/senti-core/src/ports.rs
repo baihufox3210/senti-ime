@@ -34,6 +34,11 @@ pub trait Predictor: Send {
         Vec::new()
     }
 
+    /// Optional model scores for a shortlist sharing one complete reading.
+    fn rank_word(&self, _raw: &str, _before: &str, _words: &[&str]) -> Option<Vec<f64>> {
+        None
+    }
+
     /// Optional local language-model affinity, without expanding the replacement span.
     fn context_score(&self, _previous: Option<&str>, _text: &str, _next: Option<&str>) -> f64 {
         0.0

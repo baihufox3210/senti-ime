@@ -57,6 +57,18 @@ endforeach()
 install(FILES "../../../assets/branding/png/48x48/senti-ime.png"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/pixmaps" RENAME senti-ime-panel-v2.png)
 install(PROGRAMS "${SENTI_HOST_EXECUTABLE}" DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}/senti-ime")
+set(SENTI_D512_DIRECTORY "" CACHE PATH "Optional prepared 0c D512 model directory")
+if(SENTI_D512_DIRECTORY)
+    foreach(file IN ITEMS model.onnx model.onnx.data vocab.json LICENSE)
+        if(NOT EXISTS "${SENTI_D512_DIRECTORY}/${file}")
+            message(FATAL_ERROR "Incomplete D512 bundle: missing ${file}")
+        endif()
+    endforeach()
+    install(DIRECTORY "${SENTI_D512_DIRECTORY}/"
+        DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}/senti-ime/d512"
+        PATTERN "__pycache__" EXCLUDE)
+endif()
+
 install(FILES README.md DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/senti-ime" RENAME README-linux.md)
 install(FILES ../../../docs/LOCAL_LANGUAGE_MODEL.md DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/senti-ime")
 install(FILES ../../../crates/senti-predictors/data/SOURCES.md DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/senti-ime")
