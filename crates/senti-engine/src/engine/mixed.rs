@@ -227,11 +227,7 @@ impl InputEngine {
                     self.push_mixed(c);
                     return KeyOutcome::Consumed;
                 }
-                let suffix = if self.mixed_prefers_english() {
-                    c.to_string()
-                } else {
-                    full_width(c).map_or_else(|| c.to_string(), str::to_owned)
-                };
+                let suffix = c.to_string();
                 if self.composition.is_empty() {
                     self.finish_commit(suffix)
                 } else {

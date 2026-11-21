@@ -148,12 +148,12 @@ fn english_prefix_completion_is_selectable_without_changing_case() {
 }
 
 #[test]
-fn english_spaces_and_punctuation_remain_literal() {
+fn mixed_uses_half_width_punctuation_after_either_language() {
     let mut s = session();
     s.type_text("hello, world! ");
     assert_eq!(s.document(), "hello, world! ");
     s.type_text("su3cl3!");
-    assert_eq!(s.document(), "hello, world! 你好！");
+    assert_eq!(s.document(), "hello, world! 你好!");
 }
 
 #[test]

@@ -72,7 +72,7 @@ python scripts/benchmark_native.py --scenario context
 
 混打模式的 Enter 保留未完成的注音鍵碼，不替缺少聲調的尾段選字。
 例如 `. + Enter → .`、`su3. + Enter → 你.`；輸入完整 `g.3` 仍可轉換成「手」。
-Ctrl+`.` 仍輸入全形句號「。」。
+混打預設半形標點，例如 `你好!`。Ctrl+`.` 輸入全形句號「。」，Ctrl+Shift 搭配問號鍵輸入「？」。
 
 ## 統一解碼與操作重播
 

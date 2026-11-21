@@ -416,6 +416,9 @@ impl InputEngine {
                 }
                 if let Some(suffix) = full_width(c) {
                     if senti_core::zhuyin::symbol(c).is_none() {
+                        if self.mode == InputMode::Mixed {
+                            return self.commit_editor(&c.to_string(), false);
+                        }
                         return self.commit_editor(suffix, false);
                     }
                 }

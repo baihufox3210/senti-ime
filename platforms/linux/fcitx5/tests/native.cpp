@@ -346,6 +346,16 @@ int main(int argc, char **argv) {
       check(key(engine, entry, first, FcitxKey_comma, fcitx::KeyState::Ctrl),
             "Ctrl+comma was not consumed");
       check(first.committed.ends_with("，"), "full-width punctuation missing");
+      type(engine, entry, first, "su3cl3!");
+      check(first.committed.ends_with("你好!"), "mixed punctuation was not half-width");
+      type(engine, entry, first, "su3cl3");
+      key(engine, entry, first, FcitxKey_Home);
+      key(engine, entry, first, FcitxKey_question, fcitx::KeyState::Shift);
+      check(first.committed.ends_with("你好?"), "edited mixed punctuation was not half-width");
+      check(key(engine, entry, first, FcitxKey_question,
+                fcitx::KeyStates(fcitx::KeyState::Ctrl) | fcitx::KeyState::Shift),
+            "Ctrl+Shift+question was not consumed");
+      check(first.committed.ends_with("？"), "shifted full-width punctuation missing");
       type(engine, entry, first, "su3");
       Client second(instance.inputContextManager());
       fcitx::InputContextEvent secondFocus(

@@ -428,6 +428,35 @@ fn live_conversion_preserves_editable_keys_and_does_not_learn_a_preview() {
 }
 
 #[test]
+fn mixed_punctuation_is_half_width_in_both_composition_paths() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    assert_eq!(client.type_text("editor", "?").commit.as_deref(), Some("?"));
+    assert_eq!(
+        client.type_text("editor", "su3cl3!").commit.as_deref(),
+        Some("你好!")
+    );
+    client.type_text("editor", "su3cl3");
+    client.key("editor", PlatformKey::Home);
+    assert_eq!(
+        client.type_text("editor", "?").commit.as_deref(),
+        Some("你好?")
+    );
+    client.type_text("editor", "su3cl3");
+    let response = client.modified(
+        "editor",
+        PlatformKey::Character('?'),
+        Modifiers {
+            control: true,
+            shift: true,
+            ..Modifiers::default()
+        },
+        false,
+    );
+    assert_eq!(response.commit.as_deref(), Some("你好？"));
+}
+
+#[test]
 fn control_punctuation_bypasses_phonetic_keys_and_preserves_composition() {
     let mut client = Client::new(AppOptions::ephemeral().with_mode(senti_core::InputMode::Mixed));
     client.focus("editor", false);
