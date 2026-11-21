@@ -258,23 +258,22 @@ impl InputEngine {
                 .position(|&end| end == candidate.consumed)
                 .unwrap()
                 + 1;
-            let mut right: String = editor.units[index + length..]
-                .iter()
-                .take(8)
-                .map(|u| u.text.as_str())
-                .collect();
-            if right.is_empty() {
-                right.push_str(&self.following);
-            }
-            if !right.is_empty() {
-                for predictor in &self.ports.predictors {
-                    candidate.score += predictor.context_score(None, &candidate.text, Some(&right));
-                }
-            }
+            let right = self.editor_right_context(index + length);
+            candidate.score += self.right_context_score(&candidate.text, &right);
         }
         sort_by_score(&mut candidates);
         candidates
     }
+    fn editor_right_context(&self, start: usize) -> String {
+        self.editor.as_ref().unwrap().units[start..]
+            .iter()
+            .map(|unit| unit.text.as_str())
+            .chain(std::iter::once(self.following.as_str()))
+            .flat_map(str::chars)
+            .take(8)
+            .collect()
+    }
+
     pub(super) fn select_editing(&mut self, index: usize) -> KeyOutcome {
         let Some(candidate) = self.candidates.get(index).cloned() else {
             return KeyOutcome::Consumed;
@@ -466,9 +465,22 @@ impl InputEngine {
                 || candidates
                     .first()
                     .is_some_and(|c| c.input_mode == Some(InputMode::English));
-            let top = candidates
+            let mut full: Vec<_> = candidates
                 .into_iter()
-                .find(|c| c.consumed == raw.len() && c.source.is_learnable());
+                .filter(|c| c.consumed == raw.len() && c.source.is_learnable())
+                .collect();
+            if complete {
+                let right = self.editor_right_context(index + 1);
+                for candidate in &mut full {
+                    if candidate.input_mode == Some(InputMode::Zhuyin) {
+                        // Adjacent marked text gives stronger evidence than
+                        // isolated character frequency for an inserted unit.
+                        candidate.score += 2.0 * self.right_context_score(&candidate.text, &right);
+                    }
+                }
+                sort_by_score(&mut full);
+            }
+            let top = full.into_iter().next();
             let unit = &mut self.editor.as_mut().unwrap().units[index];
             if complete {
                 if let Some(top) = top {

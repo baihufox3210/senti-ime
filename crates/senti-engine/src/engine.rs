@@ -831,6 +831,17 @@ impl InputEngine {
         self.decoded = self.decode_current();
     }
 
+    fn right_context_score(&self, text: &str, right: &str) -> f64 {
+        if right.is_empty() {
+            return 0.0;
+        }
+        self.ports
+            .predictors
+            .iter()
+            .map(|predictor| predictor.context_score(None, text, Some(right)))
+            .sum()
+    }
+
     /// predictors → plugin suggest → dedupe → rank → plugin refine → fallback.
     fn collect_candidates(&self) -> Vec<Candidate> {
         if self.mode == InputMode::Mixed {
@@ -978,10 +989,7 @@ impl InputEngine {
 
         if mode == InputMode::Zhuyin && !self.following.is_empty() && self.editor.is_none() {
             for candidate in &mut candidates {
-                for predictor in &self.ports.predictors {
-                    candidate.score +=
-                        predictor.context_score(None, &candidate.text, Some(&self.following));
-                }
+                candidate.score += self.right_context_score(&candidate.text, &self.following);
             }
             sort_by_score(&mut candidates);
         }

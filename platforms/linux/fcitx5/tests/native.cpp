@@ -463,6 +463,18 @@ int main(int argc, char **argv) {
       key(engine, entry, fifth, FcitxKey_Return);
       check(fifth.committed == "介紹一下你自己並且自動選字",
             "native Chinese sentence commit differs from preview");
+      engine->reset(entry, fifthFocus);
+      fifth.committed.clear();
+      type(engine, entry, fifth, "wj3");
+      key(engine, entry, fifth, FcitxKey_Home);
+      type(engine, entry, fifth, "su6");
+      const auto inserted = fifth.inputPanel().clientPreedit().toString();
+      check(inserted == "泥土",
+            ("native insertion preview: " + inserted).c_str());
+      check(!fifth.inputPanel().candidateList(),
+            "native insertion opened candidates without Down");
+      key(engine, entry, fifth, FcitxKey_Return);
+      check(fifth.committed == "泥土", "right-context preview differed from commit");
       engine->deactivate(entry, fifthFocus);
       Client sixth(instance.inputContextManager());
       fcitx::InputContextEvent sixthFocus(

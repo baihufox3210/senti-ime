@@ -371,10 +371,15 @@ impl Predictor for NeuralPredictor {
         let baseline = Self::sequence_score(None, text);
         let mut affinity = (score - baseline).clamp(-2.0, 2.0);
         if let Some(next) = next.filter(|n| !n.is_empty()) {
-            let tail: String = tokenize(next).into_iter().take(1).collect();
-            affinity += (Self::sequence_score(Some(text), &tail)
-                - Self::sequence_score(None, &tail))
-            .clamp(-2.0, 2.0);
+            let tokens = tokenize(next);
+            if let Some(first) = tokens.first() {
+                let first_affinity =
+                    Self::sequence_score(Some(text), first) - Self::sequence_score(None, first);
+                let phrase = tokens.iter().take(4).cloned().collect::<Vec<_>>().join(" ");
+                let phrase_affinity =
+                    Self::sequence_score(Some(text), &phrase) - Self::sequence_score(None, &phrase);
+                affinity += (0.75 * first_affinity + 0.25 * phrase_affinity).clamp(-2.0, 2.0);
+            }
         }
         0.06 * affinity.clamp(-3.0, 3.0)
     }

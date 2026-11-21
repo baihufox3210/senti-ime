@@ -51,11 +51,18 @@ impl InputEngine {
             .iter()
             .filter(|p| p.id() == "zhuyin")
             .flat_map(|p| p.predict(&query))
-            .find(|c| {
+            .filter(|c| {
                 c.source != CandidateSource::ToneCorrection
                     && c.consumed == raw.len()
                     && c.text.chars().count() == syllables.len()
-            });
+            })
+            .map(|candidate| {
+                let score =
+                    candidate.score + self.right_context_score(&candidate.text, &self.following);
+                (score, candidate)
+            })
+            .reduce(|best, next| if next.0 > best.0 { next } else { best })
+            .map(|(_, candidate)| candidate);
         if let Some(candidate) = candidate {
             if self
                 .composition

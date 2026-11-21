@@ -808,6 +808,48 @@ fn following_context_changes_ranking_without_changing_the_replacement_span() {
 }
 
 #[test]
+fn local_auto_conversion_uses_right_context_and_preserves_manual_choice() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    client.type_text("editor", "wj3");
+    client.key("editor", PlatformKey::Home);
+    let view = client.type_text("editor", "su6").view.unwrap();
+    assert_eq!(view.converted_preedit, "泥土");
+    assert!(!view.selecting);
+
+    client.key("editor", PlatformKey::Left);
+    let view = client.key("editor", PlatformKey::Down).view.unwrap();
+    let label = view
+        .candidates
+        .iter()
+        .find(|candidate| candidate.text == "尼")
+        .unwrap()
+        .label;
+    let selected = client
+        .send(Command::Select {
+            context: "editor".into(),
+            label,
+        })
+        .view
+        .unwrap();
+    assert_eq!(selected.converted_preedit, "尼土");
+
+    let revised = client
+        .send(Command::Surrounding {
+            context: "editor".into(),
+            before_cursor: "地上的".into(),
+            after_cursor: "壤".into(),
+        })
+        .view
+        .unwrap();
+    assert_eq!(revised.converted_preedit, "尼土");
+    assert_eq!(
+        client.key("editor", PlatformKey::Enter).commit.as_deref(),
+        Some("尼土")
+    );
+}
+
+#[test]
 fn context_ghost_is_explicit_and_does_not_replace_normal_typing() {
     let mut client = Client::new(AppOptions::ephemeral().with_mode(senti_core::InputMode::Mixed));
     client.focus("editor", false);
