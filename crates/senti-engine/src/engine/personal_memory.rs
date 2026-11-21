@@ -15,6 +15,34 @@ struct ContextKey {
 pub(super) struct ContextCache(Option<(ContextKey, String)>);
 
 impl InputEngine {
+    pub(super) fn can_remember_composition(&self) -> bool {
+        self.memory_enabled()
+            && !self.decoded.raw.is_empty()
+            && self.decoded.segments.iter().all(|segment| {
+                segment.complete
+                    && segment.mode == InputMode::Zhuyin
+                    && segment.text.chars().all(|character| {
+                        ('\u{3400}'..='\u{9fff}').contains(&character)
+                            || ('\u{20000}'..='\u{323af}').contains(&character)
+                    })
+            })
+            && senti_core::zhuyin::parse_tolerant(&self.decoded.raw).is_some_and(|syllables| {
+                (1..=6).contains(&syllables.len())
+                    && syllables.len() == self.decoded.text.chars().count()
+                    && syllables.iter().all(|syllable| syllable.tone.is_some())
+            })
+    }
+
+    pub fn remember_composition(&mut self, revision: u64) -> bool {
+        if revision != self.decoded.revision || !self.can_remember_composition() {
+            return false;
+        }
+        let code = code_for(InputMode::Zhuyin, &self.decoded.raw);
+        let text = self.decoded.text.clone();
+        self.deferred_word.take();
+        self.remember(MemoryKind::Confirmed, InputMode::Zhuyin, &code, &text)
+    }
+
     pub fn memory_scope(&self) -> &str {
         &self.memory.profile
     }

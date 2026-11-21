@@ -77,6 +77,8 @@ pub enum CandidateSource {
     SentenceAlternative,
     /// A contextual conversion that differs from the typed tones.
     ToneCorrection,
+    /// A nearby pronunciation offered explicitly in the candidate window.
+    NearReading,
     /// Something the user typed before.
     UserHistory,
     /// Next-word prediction after a commit.
@@ -98,6 +100,7 @@ impl CandidateSource {
             CandidateSource::Sentence => "sentence",
             CandidateSource::SentenceAlternative => "sentence_alternative",
             CandidateSource::ToneCorrection => "tone_correction",
+            CandidateSource::NearReading => "near_reading",
             CandidateSource::UserHistory => "learned",
             CandidateSource::Association => "next",
             CandidateSource::Context => "context",
@@ -107,9 +110,10 @@ impl CandidateSource {
         }
     }
 
-    /// Emoji variants are offered only for explicit selection.
+    /// Variants offered only for explicit selection.
     pub fn requires_explicit_selection(&self) -> bool {
-        matches!(self, CandidateSource::Plugin(id) if id == "emoji")
+        matches!(self, CandidateSource::NearReading)
+            || matches!(self, CandidateSource::Plugin(id) if id == "emoji")
     }
 
     /// Whether committing a candidate from this source should update the
@@ -121,6 +125,7 @@ impl CandidateSource {
                 | CandidateSource::Raw
                 | CandidateSource::Context
                 | CandidateSource::ToneCorrection
+                | CandidateSource::NearReading
         )
     }
 }

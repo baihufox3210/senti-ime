@@ -302,8 +302,51 @@ impl InputEngine {
         }
     }
 
+    fn append_near_reading_candidates(&mut self) {
+        if !matches!(self.mode, InputMode::Mixed | InputMode::Zhuyin) {
+            return;
+        }
+        self.candidates
+            .retain(|candidate| candidate.source != CandidateSource::NearReading);
+        let raw = if let Some(editor) = &self.editor {
+            let Some(raw) = editor.target_raw() else {
+                return;
+            };
+            raw
+        } else {
+            self.composition.remaining().to_owned()
+        };
+        let readings = senti_core::zhuyin::nearby_readings(&raw);
+        let mut seen: HashSet<_> = self
+            .candidates
+            .iter()
+            .map(|c| (c.text.clone(), c.consumed))
+            .collect();
+        let mut alternatives = Vec::new();
+        for reading in readings {
+            let words = self.collect_for_mode(InputMode::Zhuyin, &reading);
+            for mut candidate in words
+                .into_iter()
+                .filter(|candidate| {
+                    candidate.consumed == reading.len()
+                        && candidate.source == CandidateSource::Lexicon
+                })
+                .take(3)
+            {
+                if seen.insert((candidate.text.clone(), raw.len())) {
+                    candidate.source = CandidateSource::NearReading;
+                    candidate.consumed = raw.len();
+                    alternatives.push(candidate);
+                }
+            }
+        }
+        sort_by_score(&mut alternatives);
+        self.candidates.extend(alternatives.into_iter().take(6));
+    }
+
     fn handle_candidate_key(&mut self, key: KeyEvent) -> Option<KeyOutcome> {
         if key == KeyEvent::OpenCandidates {
+            self.append_near_reading_candidates();
             self.selecting = !self.candidates.is_empty();
             self.cursor =
                 if self.selecting && self.mode == InputMode::Mixed && self.editor.is_none() {
@@ -914,42 +957,41 @@ impl InputEngine {
                     ) || (candidate.source == CandidateSource::UserHistory
                         && lexical_words.is_some_and(|words| words.contains(&candidate.text))))
             })
-            .take(6)
+            .take(8)
             .map(|(index, _)| index)
             .collect();
         if indices.len() < 2 {
             return;
         }
-        let words: Vec<_> = indices
-            .iter()
-            .map(|&i| candidates[i].text.as_str())
-            .collect();
         let start = std::time::Instant::now();
         let deadline = start + budget;
-        let score = self.ports.predictors.iter().find_map(|model| {
+        for model in &self.ports.predictors {
+            let indices = &indices[..indices.len().min(model.word_model_candidate_limit())];
+            let words: Vec<_> = indices
+                .iter()
+                .map(|&i| candidates[i].text.as_str())
+                .collect();
             match model.rank_word(raw, before, after, &words, deadline) {
-                Some(senti_core::WordModelScore::Deferred(_)) if self.editor.is_some() => None,
-                score => score,
+                Some(senti_core::WordModelScore::Ready(scores)) => {
+                    Self::apply_word_scores(candidates, indices, scores);
+                    break;
+                }
+                Some(senti_core::WordModelScore::Deferred(scores)) if self.editor.is_none() => {
+                    self.deferred_word.replace(Some(DeferredWord {
+                        raw: raw.to_owned(),
+                        before: before.to_owned(),
+                        after: after.to_owned(),
+                        words: words.into_iter().map(str::to_owned).collect(),
+                        started: start,
+                        scores,
+                    }));
+                    break;
+                }
+                _ => {}
             }
-        });
+        }
         self.word_model_budget
             .set(budget.saturating_sub(start.elapsed()));
-        match score {
-            Some(senti_core::WordModelScore::Ready(scores)) => {
-                Self::apply_word_scores(candidates, &indices, scores);
-            }
-            Some(senti_core::WordModelScore::Deferred(scores)) if self.editor.is_none() => {
-                self.deferred_word.replace(Some(DeferredWord {
-                    raw: raw.to_owned(),
-                    before: before.to_owned(),
-                    after: after.to_owned(),
-                    words: words.into_iter().map(str::to_owned).collect(),
-                    started: start,
-                    scores,
-                }));
-            }
-            _ => {}
-        }
     }
 
     fn apply_word_scores(
@@ -1391,6 +1433,7 @@ impl InputEngine {
             .as_ref()
             .map_or(converted_preedit.len(), |e| e.cursor_bytes());
         EngineView {
+            can_remember_composition: self.can_remember_composition(),
             memory: crate::MemoryStatus {
                 scope: self.memory_scope().into(),
                 enabled: self.memory_enabled(),

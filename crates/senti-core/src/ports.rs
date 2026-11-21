@@ -41,6 +41,10 @@ pub trait Predictor: Send {
         Vec::new()
     }
 
+    fn word_model_candidate_limit(&self) -> usize {
+        6
+    }
+
     /// Optional model scores for a shortlist sharing one complete reading.
     fn rank_word(
         &self,

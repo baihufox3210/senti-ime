@@ -107,6 +107,10 @@ pub enum Command {
     MemoryRetention {
         days: u32,
     },
+    MemoryRememberComposition {
+        context: String,
+        revision: u64,
+    },
     MemoryList,
     MemoryPage {
         offset: usize,
@@ -298,6 +302,17 @@ impl PlatformHost {
                         return Err("memory unavailable in sensitive fields".into());
                     }
                     self.engine.set_memory_retention_days(days)?;
+                }
+                Command::MemoryRememberComposition { context, revision } => {
+                    self.require_active(&context)?;
+                    if self.sensitive {
+                        return Err("memory unavailable in sensitive fields".into());
+                    }
+                    outcome = if self.engine.remember_composition(revision) {
+                        KeyOutcome::Consumed
+                    } else {
+                        KeyOutcome::PassThrough
+                    };
                 }
                 Command::MemoryList => {
                     if self.sensitive {

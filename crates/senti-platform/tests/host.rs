@@ -1589,6 +1589,90 @@ fn mixed_period_and_unfinished_phonetics_remain_literal_on_enter() {
 }
 
 #[test]
+fn remembers_the_visible_zhuyin_word_without_committing() {
+    let directory = tempfile::tempdir().unwrap();
+    let options = || AppOptions::ephemeral().with_data_dir(directory.path());
+    {
+        let mut client = Client::new(options());
+        client.focus("editor", false);
+        client.send(Command::MemoryScope {
+            scope: "app:editor".into(),
+        });
+        let partial = client.type_text("editor", "su").view.unwrap();
+        assert!(!partial.can_remember_composition);
+        let current = client.type_text("editor", "3cl3").view.unwrap();
+        assert!(current.can_remember_composition);
+        let stale = client.send(Command::MemoryRememberComposition {
+            context: "editor".into(),
+            revision: partial.decode_revision,
+        });
+        assert!(!stale.consumed);
+        let saved = client.send(Command::MemoryRememberComposition {
+            context: "editor".into(),
+            revision: current.decode_revision,
+        });
+        assert!(saved.consumed && saved.commit.is_none());
+        assert_eq!(
+            saved.view.unwrap().converted_preedit,
+            current.converted_preedit
+        );
+        assert!(client.send(Command::MemoryFlush).ok);
+    }
+    let mut client = Client::new(options());
+    client.focus("editor", false);
+    client.send(Command::MemoryScope {
+        scope: "app:editor".into(),
+    });
+    assert!(
+        client
+            .send(Command::MemoryList)
+            .memory
+            .unwrap()
+            .iter()
+            .any(|entry| entry.text == "你好" && entry.code == "su3cl3" && entry.accepts == 1)
+    );
+    client.focus("secret", true);
+    assert!(
+        !client
+            .send(Command::MemoryRememberComposition {
+                context: "secret".into(),
+                revision: 0
+            })
+            .ok
+    );
+}
+
+#[test]
+fn near_reading_is_an_explicit_candidate_and_keeps_the_typed_keys() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    let draft = client.type_text("editor", "y4").view.unwrap();
+    assert!(draft.candidates.iter().all(|c| c.source != "near_reading"));
+    let mut page = client.key("editor", PlatformKey::Down).view.unwrap();
+    let found = loop {
+        if let Some(choice) = page.candidates.iter().find(|c| c.source == "near_reading") {
+            break choice.clone();
+        }
+        assert!(page.page + 1 < page.page_count);
+        page = client.key("editor", PlatformKey::PageDown).view.unwrap();
+    };
+    assert_ne!(found.text, draft.converted_preedit);
+    let chosen = client.send(Command::Select {
+        context: "editor".into(),
+        label: found.label,
+    });
+    assert!(chosen.commit.is_none());
+    assert_eq!(chosen.view.unwrap().converted_preedit, found.text);
+    assert_eq!(
+        client
+            .key("editor", PlatformKey::CommitRaw)
+            .commit
+            .as_deref(),
+        Some("y4")
+    );
+}
+
+#[test]
 fn short_name_learns_after_correcting_only_its_last_character() {
     let directory = tempfile::tempdir().unwrap();
     let options = || AppOptions::ephemeral().with_data_dir(directory.path());

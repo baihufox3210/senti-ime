@@ -21,6 +21,8 @@ pub struct CandidateView {
 pub struct EngineView {
     #[serde(default)]
     pub memory: MemoryStatus,
+    #[serde(default)]
+    pub can_remember_composition: bool,
     pub mode: InputMode,
     /// Scheme restored by a lone Shift tap while in English mode.
     pub chinese_mode: InputMode,

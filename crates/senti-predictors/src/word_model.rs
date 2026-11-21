@@ -123,6 +123,13 @@ impl Predictor for LocalWordPredictor {
         Vec::new()
     }
 
+    fn word_model_candidate_limit(&self) -> usize {
+        match self.kind {
+            ModelKind::D512 => 8,
+            ModelKind::Qwen => 6,
+        }
+    }
+
     fn rank_word(
         &self,
         raw: &str,
@@ -131,7 +138,9 @@ impl Predictor for LocalWordPredictor {
         words: &[&str],
         deadline: Instant,
     ) -> Option<WordModelScore> {
-        if !self.ready.load(Ordering::Acquire) || !(2..=6).contains(&words.len()) {
+        if !self.ready.load(Ordering::Acquire)
+            || !(2..=self.word_model_candidate_limit()).contains(&words.len())
+        {
             return None;
         }
         let syllables = zhuyin::parse_tolerant(raw)?;
@@ -288,15 +297,20 @@ mod tests {
             return;
         };
         let model = LocalWordPredictor::open_d512(Path::new(&path)).expect("model directory");
+        let words = [
+            "自己", "字己", "自幾", "字幾", "自戟", "字戟", "自脊", "字脊",
+        ];
+        assert_eq!(model.word_model_candidate_limit(), words.len());
         let deadline = std::time::Instant::now() + Duration::from_secs(5);
         loop {
             if let Some(WordModelScore::Ready(scores)) = model.rank_word(
                 "y4ru3",
                 "你好介紹一下你",
                 "",
-                &["自己", "字己"],
+                &words,
                 Instant::now() + Duration::from_millis(15),
             ) {
+                assert_eq!(scores.len(), words.len());
                 assert!(scores[0] > scores[1] + 1.0, "{scores:?}");
                 break;
             }

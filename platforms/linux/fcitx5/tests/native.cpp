@@ -648,6 +648,17 @@ int main(int argc, char **argv) {
         memoryAction->menu()->actions().front()->activate(&managed);
         check(memoryAction->menu()->actions().size() == 1,
               "native memory clear did not refresh the menu");
+        managed.committed.clear();
+        type(engine, entry, managed, "su3cl3");
+        const auto remembered = managed.inputPanel().clientPreedit().toString();
+        check(memoryAction->menu()->actions().size() == 2,
+              "remember-composition action not available");
+        memoryAction->menu()->actions().front()->activate(&managed);
+        check(managed.committed.empty() &&
+                  managed.inputPanel().clientPreedit().toString() == remembered &&
+                  memoryAction->menu()->actions().size() >= 3,
+              "explicit vocabulary save changed the draft or did not persist");
+        key(engine, entry, managed, FcitxKey_Escape);
         for (int repetition = 0; repetition < 2; ++repetition) {
           managed.committed.clear();
           type(engine, entry, managed, "j;6vul3au/6");
@@ -675,6 +686,23 @@ int main(int argc, char **argv) {
         type(engine, entry, managed, "j;6vul3au/6");
         check(managed.inputPanel().clientPreedit().toString() == "王曉鳴",
               "learned name was split during native composition");
+        engine->reset(entry, focus);
+        fcitx::RawConfig selectionConfig;
+        selectionConfig.setValueByPath("HomeRowSelection", "True");
+        addon->setConfig(selectionConfig);
+        managed.committed.clear();
+        type(engine, entry, managed, "su3cl3");
+        key(engine, entry, managed, FcitxKey_Down);
+        auto homeRow = managed.inputPanel().candidateList();
+        check(homeRow && homeRow->label(0).toString() == "a. ",
+              "home-row selection label was not shown");
+        const auto expected = "你" + homeRow->candidate(0).text().toString();
+        check(key(engine, entry, managed, FcitxKey_a) &&
+                  managed.committed.empty() &&
+                  managed.inputPanel().clientPreedit().toString() == expected,
+              "home-row key did not select an editable candidate");
+        selectionConfig.setValueByPath("HomeRowSelection", "False");
+        addon->setConfig(selectionConfig);
         engine->deactivate(entry, focus);
       }
     }

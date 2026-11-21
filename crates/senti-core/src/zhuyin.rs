@@ -141,6 +141,39 @@ fn repair_keys(keys: &[char]) -> Option<String> {
     Some(keys.into_iter().collect())
 }
 
+/// Change one commonly confused initial or ending in a complete reading.
+pub fn nearby_readings(raw: &str) -> Vec<String> {
+    let Some(syllables) = parse_tolerant(raw) else {
+        return Vec::new();
+    };
+    if !(1..=6).contains(&syllables.len()) || syllables.iter().any(|s| s.tone.is_none()) {
+        return Vec::new();
+    }
+    // Standard Dachen keys for ㄗ/ㄓ, ㄘ/ㄔ, ㄙ/ㄕ and ㄣ/ㄥ.
+    const PAIRS: [(char, char); 4] = [('y', '5'), ('h', 't'), ('n', 'g'), ('p', '/')];
+    let Some(canonical) = canonical_code(raw) else {
+        return Vec::new();
+    };
+    canonical
+        .char_indices()
+        .filter_map(|(index, key)| {
+            let alternate = PAIRS.iter().find_map(|&(a, b)| {
+                if key == a {
+                    Some(b)
+                } else if key == b {
+                    Some(a)
+                } else {
+                    None
+                }
+            })?;
+            let mut reading = canonical.clone();
+            reading.replace_range(index..index + 1, &alternate.to_string());
+            parse(&reading).map(|_| reading)
+        })
+        .take(6)
+        .collect()
+}
+
 /// Canonical code for learning; raw keys are retained separately for Ctrl+Enter.
 pub fn canonical_code(raw: &str) -> Option<String> {
     let syllables = parse_tolerant(raw)?;

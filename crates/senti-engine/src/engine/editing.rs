@@ -26,6 +26,15 @@ impl Editor {
     pub(super) fn cursor_bytes(&self) -> usize {
         self.units[..self.cursor].iter().map(|u| u.text.len()).sum()
     }
+    pub(super) fn target_raw(&self) -> Option<String> {
+        let focus = self.focus()?;
+        (self.units[focus].input_mode == Some(InputMode::Zhuyin)).then(|| {
+            self.units[focus..self.target_end]
+                .iter()
+                .map(|unit| unit.raw.as_str())
+                .collect()
+        })
+    }
     pub(super) fn target_raw_len(&self) -> usize {
         self.focus().map_or(0, |focus| {
             self.units[focus..self.target_end]

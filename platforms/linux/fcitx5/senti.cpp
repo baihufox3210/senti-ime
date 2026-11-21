@@ -14,6 +14,7 @@
 #include <fcitx/statusarea.h>
 #include <fcitx/userinterfacemanager.h>
 #include <functional>
+#include <string_view>
 #include <utility>
 
 #ifndef SENTI_HOST_PATH
@@ -21,6 +22,7 @@
 #endif
 namespace senti {
 namespace {
+constexpr std::string_view homeRowKeys = "asdfghjkl";
 class MemoryItem final : public fcitx::Action {
 public:
   MemoryItem(std::string label,
@@ -85,7 +87,7 @@ private:
 class Candidates final : public fcitx::CandidateList,
                          public fcitx::PageableCandidateList {
 public:
-  Candidates(const Json &view,
+  Candidates(const Json &view, bool useHomeRow,
              std::function<void(fcitx::InputContext *, size_t)> select,
              std::function<void(bool)> turnPage)
       : turnPage_(std::move(turnPage)) {
@@ -102,7 +104,10 @@ public:
       auto value =
           own(json_object_get(json_object_array_get_idx(values.get(), i)));
       size_t label = static_cast<size_t>(integer(get(value, "label")));
-      labels_.emplace_back(std::to_string(label) + ". ");
+      const auto key = useHomeRow && label > 0 && label <= homeRowKeys.size()
+                           ? std::string(1, homeRowKeys[label - 1])
+                           : std::to_string(label);
+      labels_.emplace_back(key + ". ");
       words_.push_back(std::make_unique<Word>(
           text(get(value, "text")),
           [select, label](fcitx::InputContext *ic) { select(ic, label); }));
@@ -405,9 +410,23 @@ void Engine::keyEvent(const fcitx::InputMethodEntry &, fcitx::KeyEvent &event) {
       break;
     }
     auto key = object();
+    auto states = event.key().states();
+    const bool shift = event.rawKey().states().test(fcitx::KeyState::Shift);
+    const bool control = states.test(fcitx::KeyState::Ctrl);
+    const bool alt = states.test(fcitx::KeyState::Alt);
+    const bool meta = states.test(fcitx::KeyState::Super) ||
+                      states.test(fcitx::KeyState::Super2) ||
+                      states.test(fcitx::KeyState::Meta);
     set(key, "name", string(name));
     if (std::string(name) == "other") {
       uint32_t unicode = fcitx::Key::keySymToUnicode(sym);
+      if (*settings_.homeRowSelection && unicode <= 0x7f &&
+          !shift && !control && !alt && !meta &&
+          truth(get(ic->propertyFor(&factory_)->view, "selecting"))) {
+        const auto index = homeRowKeys.find(static_cast<char>(unicode));
+        if (index != std::string_view::npos)
+          unicode = '1' + index;
+      }
       if (unicode >= 0x20 && unicode != 0x7f) {
         char bytes[8]{};
         int length = fcitx_ucs4_to_utf8(unicode, bytes);
@@ -417,15 +436,10 @@ void Engine::keyEvent(const fcitx::InputMethodEntry &, fcitx::KeyEvent &event) {
       }
     }
     auto modifiers = object();
-    auto states = event.key().states();
-    set(modifiers, "control", boolean(states.test(fcitx::KeyState::Ctrl)));
-    set(modifiers, "alt", boolean(states.test(fcitx::KeyState::Alt)));
-    set(modifiers, "shift",
-        boolean(event.rawKey().states().test(fcitx::KeyState::Shift)));
-    set(modifiers, "meta",
-        boolean(states.test(fcitx::KeyState::Super) ||
-                states.test(fcitx::KeyState::Super2) ||
-                states.test(fcitx::KeyState::Meta)));
+    set(modifiers, "control", boolean(control));
+    set(modifiers, "alt", boolean(alt));
+    set(modifiers, "shift", boolean(shift));
+    set(modifiers, "meta", boolean(meta));
     auto request = command("key", ic->propertyFor(&factory_)->id);
     set(request, "key", key);
     set(request, "modifiers", modifiers);
@@ -448,7 +462,9 @@ void Engine::updateMemoryMenu(fcitx::InputContext *ic) {
   const auto scope = text(get(info, "scope"));
   const auto stamp = scope + ":" + std::to_string(integer(get(info, "count"))) +
                      (truth(get(info, "enabled")) ? ":on" : ":off");
-  const auto pageStamp = stamp + ":" + std::to_string(memoryMenuOffset_);
+  const bool canRemember = truth(get(state->view, "can_remember_composition"));
+  const auto pageStamp = stamp + (canRemember ? ":remember:" : ":") +
+                         std::to_string(memoryMenuOffset_);
   if (memoryMenuStamp_ == pageStamp)
     return;
   memoryMenuStamp_ = pageStamp;
@@ -485,6 +501,12 @@ void Engine::updateMemoryMenu(fcitx::InputContext *ic) {
               return;
             }
             auto request = command(operation);
+            if (std::string_view(operation) == "memory_remember_composition") {
+              if (!truth(get(current->view, "can_remember_composition")))
+                return;
+              set(request, "context", string(current->id));
+              set(request, "revision", number(integer(get(current->view, "decode_revision"))));
+            }
             if (id > 0)
               set(request, "id", number(id));
             auto response = bridge_.exchange(request);
@@ -501,6 +523,8 @@ void Engine::updateMemoryMenu(fcitx::InputContext *ic) {
     memoryMenu_->addAction(item.get());
     memoryItems_.push_back(std::move(item));
   };
+  if (canRemember)
+    append("記住目前組字", "memory_remember_composition", 0);
   append("清除目前範圍的記憶", "memory_clear", 0);
   if (memoryMenuOffset_ > 0)
     append("回到最新記憶", "memory_next", 0);
@@ -637,7 +661,7 @@ void Engine::apply(fcitx::InputContext *ic, const Json &response,
       json_object_is_type(candidates.get(), json_type_array) &&
       json_object_array_length(candidates.get()) > 0) {
     ic->inputPanel().setCandidateList(std::make_unique<Candidates>(
-        view,
+        view, *settings_.homeRowSelection,
         [this, weak, revision](fcitx::InputContext *target, size_t label) {
           if (weak.lock())
             select(target, label, revision);
