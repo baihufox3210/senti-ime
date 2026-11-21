@@ -134,7 +134,11 @@ fn sentiment_is_detected_from_document() {
 fn emoji_plugin_follows_context_and_toggle() {
     let mut s = session_at(14);
     s.type_text("kaixin");
+    assert!(!texts(&s).contains(&"😊".to_owned()));
+    s.engine_mut().set_plugin_enabled("emoji", true).unwrap();
     assert!(texts(&s).contains(&"😊".to_owned()));
+    s.press(KeyEvent::Space);
+    assert_eq!(s.document(), "開心");
 
     s.press(KeyEvent::Escape);
     s.engine_mut().set_app(AppKind::Email);

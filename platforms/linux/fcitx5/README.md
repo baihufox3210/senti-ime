@@ -49,7 +49,7 @@ sudo cmake --install target/fcitx5
 4. 輸入 `hellosu3cl3world` 再按 Enter，應上屏 `hello你好world`。
 
 另外三個項目是 `SentiIME — zhuyin`、`SentiIME — pinyin`、`SentiIME — english`。
-設定工具中可開關個人化學習、Emoji、日期時間與計算機插件。
+設定工具中可開關個人化學習、Emoji、日期時間與計算機插件。Emoji 預設關閉，開啟後須手動選取表情候選。
 
 Fcitx 5 必須已能在你的桌面／應用程式中運作。X11／Wayland 和 GTK／Qt／瀏覽器的接入
 由 Fcitx 5 與桌面環境提供；SentiIME 不改寫系統的 GTK_IM_MODULE、QT_IM_MODULE、XMODIFIERS

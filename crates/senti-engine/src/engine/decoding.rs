@@ -46,14 +46,11 @@ impl InputEngine {
         let mut at = self.composition.len() - raw.len();
         let mut remaining = raw;
         while !remaining.is_empty() {
-            let (text, consumed, mode, source, complete, learnable) = if self.mode
-                == InputMode::Mixed
-                && self
-                    .candidates
-                    .first()
-                    .is_some_and(|c| matches!(c.source, CandidateSource::Plugin(_)))
-            {
-                let top = &self.candidates[0];
+            let top = self.first_automatic_candidate();
+            let (text, consumed, mode, source, complete, learnable) = if let Some(top) =
+                top.filter(|c| {
+                    self.mode == InputMode::Mixed && matches!(c.source, CandidateSource::Plugin(_))
+                }) {
                 (
                     top.text.clone(),
                     if top.consumed == 0 {

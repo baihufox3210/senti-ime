@@ -107,6 +107,11 @@ impl CandidateSource {
         }
     }
 
+    /// Emoji variants are offered only for explicit selection.
+    pub fn requires_explicit_selection(&self) -> bool {
+        matches!(self, CandidateSource::Plugin(id) if id == "emoji")
+    }
+
     /// Whether committing a candidate from this source should update the
     /// user model. Plugin output (dates, calculations…) is ephemeral.
     pub fn is_learnable(&self) -> bool {

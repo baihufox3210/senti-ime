@@ -89,8 +89,8 @@ impl Plugin for EmojiPlugin {
         PluginManifest {
             id: ID,
             name: "Emoji 表情",
-            description: "為情緒或物品類候選詞補上表情符號；正式場合與程式編輯器中自動停用。",
-            enabled_by_default: true,
+            description: "提供可手動選取的表情符號；正式場合與程式編輯器中停用。",
+            enabled_by_default: false,
         }
     }
 

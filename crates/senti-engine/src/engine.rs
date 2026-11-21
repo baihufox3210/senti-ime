@@ -426,10 +426,14 @@ impl InputEngine {
         match key {
             KeyEvent::Char(c) => self.handle_composing_char(c),
             KeyEvent::Space => match self.mode {
-                InputMode::Chinese if !self.candidates.is_empty() => {
-                    self.select_index_inner(0, false)
-                }
-                InputMode::Chinese => self.commit_literal(""),
+                InputMode::Chinese => match self
+                    .candidates
+                    .iter()
+                    .position(|candidate| !candidate.source.requires_explicit_selection())
+                {
+                    Some(index) => self.select_index_inner(index, false),
+                    None => self.commit_literal(""),
+                },
                 InputMode::Zhuyin | InputMode::Mixed => unreachable!("separate handler"),
                 InputMode::English => self.commit_literal(" "),
             },
@@ -655,6 +659,12 @@ impl InputEngine {
         }
     }
 
+    fn first_automatic_candidate(&self) -> Option<&Candidate> {
+        self.candidates
+            .iter()
+            .find(|candidate| !candidate.source.requires_explicit_selection())
+    }
+
     /// Repeatedly accept the top candidate until everything is converted.
     /// Returns `false` if conversion got stuck (nothing to select).
     fn convert_all_with_top(&mut self) -> bool {
@@ -664,7 +674,7 @@ impl InputEngine {
                 return true;
             }
             self.recompute_candidates();
-            let Some(top) = self.candidates.first().cloned() else {
+            let Some(top) = self.first_automatic_candidate().cloned() else {
                 self.composition = original;
                 self.recompute_candidates();
                 return false;

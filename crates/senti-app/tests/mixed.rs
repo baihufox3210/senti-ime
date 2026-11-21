@@ -256,8 +256,30 @@ fn existing_plugins_are_available_in_mixed_mode_and_do_not_learn_outputs() {
             .view()
             .candidates
             .iter()
+            .all(|c| c.source != "emoji")
+    );
+    s.engine_mut().set_plugin_enabled("emoji", true).unwrap();
+    assert!(
+        s.engine()
+            .view()
+            .candidates
+            .iter()
             .any(|c| c.source == "emoji")
     );
+    s.press(KeyEvent::Enter);
+    assert_eq!(s.document(), "開心");
+    s.type_text("d9 vup ");
+    let emoji = s
+        .engine()
+        .view()
+        .candidates
+        .iter()
+        .find(|c| c.source == "emoji")
+        .unwrap()
+        .label;
+    s.select(emoji);
+    assert_eq!(s.document(), "開心😊");
+    s.type_text("d9 vup ");
     s.engine_mut().set_plugin_enabled("emoji", false).unwrap();
     assert!(
         s.engine()

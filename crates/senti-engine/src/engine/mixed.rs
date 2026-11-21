@@ -76,9 +76,10 @@ impl InputEngine {
             && (input.chars().all(|c| c.is_ascii_alphabetic() || c == '\'')
                 || zhuyin::parse_tolerant(input)
                     .is_some_and(|syllables| syllables.iter().all(|s| s.tone.is_none())))
-            && !candidates
-                .iter()
-                .any(|c| matches!(c.source, CandidateSource::Plugin(_)))
+            && !candidates.iter().any(|c| {
+                matches!(c.source, CandidateSource::Plugin(_))
+                    && !c.source.requires_explicit_selection()
+            })
         {
             for candidate in &mut candidates {
                 if candidate.input_mode == Some(InputMode::English)
@@ -132,8 +133,7 @@ impl InputEngine {
     }
 
     pub(super) fn mixed_prefers_english(&self) -> bool {
-        self.candidates
-            .first()
+        self.first_automatic_candidate()
             .is_some_and(|c| c.input_mode == Some(InputMode::English))
     }
 

@@ -485,6 +485,17 @@ int main(int argc, char **argv) {
             "native insertion opened candidates without Down");
       key(engine, entry, fifth, FcitxKey_Return);
       check(fifth.committed == "泥土", "right-context preview differed from commit");
+      fifth.committed.clear();
+      type(engine, entry, fifth, "d9 vup ");
+      key(engine, entry, fifth, FcitxKey_Down);
+      auto emotion = fifth.inputPanel().candidateList();
+      check(emotion && emotion->size() > 0, "text candidates unavailable");
+      for (int i = 0; i < emotion->size(); ++i) {
+        check(emotion->candidate(i).text().toString() != "😊",
+              "emoji appeared in the default candidate list");
+      }
+      key(engine, entry, fifth, FcitxKey_Return);
+      check(fifth.committed == "開心", "default emotion word lost its text");
       engine->deactivate(entry, fifthFocus);
       Client sixth(instance.inputContextManager());
       fcitx::InputContextEvent sixthFocus(

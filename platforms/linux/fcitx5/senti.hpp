@@ -25,7 +25,7 @@ FCITX_CONFIGURATION(
     fcitx::Option<bool> clearMemory{
         this, "ClearMemory", "Clear memory in this profile on next input",
         false};
-    fcitx::Option<bool> emoji{this, "Emoji", "Enable emoji candidates", true};
+    fcitx::Option<bool> emoji{this, "Emoji", "Offer emoji for manual selection", false};
     fcitx::Option<bool> datetime{this, "DateTime", "Enable date/time shortcuts",
                                  true};
     fcitx::Option<bool> calculator{this, "Calculator", "Enable calculator",
