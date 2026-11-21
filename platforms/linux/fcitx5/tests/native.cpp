@@ -227,6 +227,19 @@ int main(int argc, char **argv) {
         mixed.committed.clear();
         engine->deactivate(entry, focus);
         engine->activate(entry, focus);
+        type(engine, entry, mixed, "up ");
+        check(mixed.inputPanel().clientPreedit().toString() == "因",
+              "a completed first tone did not prioritize Chinese");
+        check(!mixed.inputPanel().candidateList(),
+              "a completed first tone opened candidates without Down");
+        key(engine, entry, mixed, FcitxKey_Return);
+        check(mixed.committed == "因", "standalone first tone changed at commit");
+        mixed.committed.clear();
+        type(engine, entry, mixed, "up there ");
+        check(mixed.committed == "up there ", "known English continuation was lost");
+        mixed.committed.clear();
+        engine->deactivate(entry, focus);
+        engine->activate(entry, focus);
         type(engine, entry, mixed, "up jo4");
         check(mixed.inputPanel().clientPreedit().toString() == "因為",
               "English up prevented a first-tone dictionary word");

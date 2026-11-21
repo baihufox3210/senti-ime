@@ -68,7 +68,9 @@ impl InputEngine {
                 )
             } else if !matches!(self.mode, InputMode::Mixed | InputMode::Zhuyin)
                 || self.mode == InputMode::Mixed
-                    && (self.mixed_prefers_english() || self.mixed_pending_first_tone(remaining))
+                    && (self.mixed_english_continuation(remaining)
+                        || (self.mixed_first_tone_pair(remaining).is_none()
+                            && self.mixed_prefers_english()))
             {
                 (
                     remaining.to_owned(),
@@ -86,7 +88,13 @@ impl InputEngine {
                         && self.mixed_known_english(remaining),
                 )
             } else {
-                let end = zhuyin::parse_tolerant(remaining).map_or(0, |s| {
+                let prefix_end = if self.mode == InputMode::Mixed {
+                    self.mixed_first_tone_pair(remaining)
+                        .map_or(0, |(first, _)| first.len() + 1)
+                } else {
+                    0
+                };
+                let end = zhuyin::parse_tolerant(remaining).map_or(prefix_end, |s| {
                     s.iter()
                         .filter(|s| s.tone.is_some())
                         .map(|s| s.end)

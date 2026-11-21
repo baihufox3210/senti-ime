@@ -1722,12 +1722,34 @@ fn near_tone_word_uses_degree_context_without_overwriting_exact_reading_elsewher
 }
 
 #[test]
-fn mixed_first_tone_waits_for_dictionary_evidence_without_breaking_english() {
+fn mixed_prefers_supported_first_tone_without_breaking_known_english_phrases() {
     let mut client = Client::new(AppOptions::ephemeral());
     client.focus("editor", false);
     let pending = client.type_text("editor", "up ");
     assert!(pending.commit.is_none());
-    assert_eq!(pending.view.unwrap().converted_preedit, "up ");
+    assert_eq!(pending.view.unwrap().converted_preedit, "因");
+    assert_eq!(
+        client.key("editor", PlatformKey::Enter).commit.as_deref(),
+        Some("因")
+    );
+    client.focus("editor", false);
+    assert_eq!(
+        client
+            .type_text("editor", "up qzz")
+            .view
+            .unwrap()
+            .converted_preedit,
+        "因qzz"
+    );
+    assert_eq!(
+        client
+            .key("editor", PlatformKey::CommitRaw)
+            .commit
+            .as_deref(),
+        Some("up qzz")
+    );
+    client.focus("editor", false);
+    client.type_text("editor", "up ");
     assert_eq!(
         client
             .type_text("editor", "jo4")

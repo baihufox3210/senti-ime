@@ -267,6 +267,14 @@ impl InputEngine {
         }
         self.association_active = false;
         self.composition.push(c);
+        if self
+            .mixed_first_tone_pair(self.composition.remaining())
+            .is_some_and(|(_, tail)| tail.bytes().all(|b| b.is_ascii_alphabetic() || b == b'\''))
+        {
+            // Keep the original span intact while the English continuation
+            // and the tone-marked reading are both possible.
+            return;
+        }
         if !self.preserve_chinese_before_invalid_tail() {
             self.select_mixed_prefix();
         }
@@ -450,11 +458,26 @@ impl InputEngine {
             .any(|p| p.has_word_continuation(InputMode::Zhuyin, &marked, 6))
     }
 
+    pub(super) fn mixed_first_tone_pair<'a>(&self, raw: &'a str) -> Option<(&'a str, &'a str)> {
+        let (first, tail) = raw.split_once(' ')?;
+        self.can_defer_mixed_space(first).then_some((first, tail))
+    }
+
+    pub(super) fn mixed_english_continuation(&self, raw: &str) -> bool {
+        self.mixed_first_tone_pair(raw).is_some_and(|(_, tail)| {
+            tail.len() >= 2
+                && tail.bytes().all(|b| b.is_ascii_alphabetic() || b == b'\'')
+                && self
+                    .collect_for_mode(InputMode::English, tail)
+                    .iter()
+                    .any(|c| {
+                        c.source == CandidateSource::Lexicon && c.text.eq_ignore_ascii_case(tail)
+                    })
+        })
+    }
+
     pub(super) fn mixed_pending_first_tone(&self, raw: &str) -> bool {
-        let Some((first, _)) = raw.split_once(' ') else {
-            return false;
-        };
-        self.can_defer_mixed_space(first)
+        self.mixed_first_tone_pair(raw).is_some()
             && !zhuyin::parse_tolerant(raw).is_some_and(|syllables| {
                 syllables.len() > 1
                     && syllables.iter().all(|s| s.tone.is_some())
