@@ -270,6 +270,42 @@ impl Predictor for ZhuyinPredictor {
         })
     }
 
+    fn zhuyin_completion(&self, raw: &str, displayed: &str) -> Option<String> {
+        let reading = zhuyin::parse_tolerant(raw)?;
+        let count = reading.len();
+        if !(2..=4).contains(&count)
+            || displayed.chars().count() != count
+            || reading.iter().any(|syllable| syllable.tone.is_none())
+        {
+            return None;
+        }
+        let first = &reading[0];
+        let key = index_key(&first.keys, first.tone);
+        let mut options = (count + 1..=count + 2)
+            .flat_map(|length| {
+                self.data
+                    .by_prefix
+                    .get(&(key, length))
+                    .into_iter()
+                    .flatten()
+            })
+            .map(|&id| &self.data.entries[id as usize])
+            .filter(|entry| {
+                entry.frequency >= 80
+                    && entry.text.starts_with(displayed)
+                    && entry.matches_prefix(&reading)
+            })
+            .collect::<Vec<_>>();
+        options.sort_unstable_by_key(|entry| std::cmp::Reverse(entry.frequency));
+        let best = options.first()?;
+        if options.iter().any(|entry| {
+            entry.text != best.text && entry.frequency.saturating_mul(2) >= best.frequency
+        }) {
+            return None;
+        }
+        best.text.strip_prefix(displayed).map(str::to_owned)
+    }
+
     fn context_score(&self, previous: Option<&str>, text: &str, next: Option<&str>) -> f64 {
         let left = self.data.language_model.score(previous, text);
         let right = next

@@ -31,6 +31,11 @@ pub trait Predictor: Send {
         false
     }
 
+    /// Predict only a bounded continuation of the displayed phonetic word.
+    fn zhuyin_completion(&self, _raw: &str, _displayed: &str) -> Option<String> {
+        None
+    }
+
     /// Suggestions that may consult bounded host context beyond the last word.
     fn suggest_context(
         &self,

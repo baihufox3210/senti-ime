@@ -969,6 +969,27 @@ fn following_context_changes_ranking_without_changing_the_replacement_span() {
 }
 
 #[test]
+fn chinese_completion_is_explicit_and_wrong_final_tones_are_selectable() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    let view = client.type_text("editor", "gj4rm4").view.unwrap();
+    assert_eq!(view.converted_preedit, "數據");
+    assert_eq!(view.suggestion.as_deref(), Some("集"));
+    assert_eq!(
+        client.key("editor", PlatformKey::Enter).commit.as_deref(),
+        Some("數據")
+    );
+    client.type_text("editor", "gj4rm4");
+    assert_eq!(
+        client.key("editor", PlatformKey::Tab).commit.as_deref(),
+        Some("數據集")
+    );
+    let view = client.type_text("editor", "g.4").view.unwrap();
+    assert_ne!(view.converted_preedit, "手");
+    assert!(client.score_across_pages("editor", "手").is_some());
+}
+
+#[test]
 fn expanded_corpus_preserves_dataset_and_conjunction_readings() {
     let directory = tempfile::tempdir().unwrap();
     let mut model = senti_core::UserModel::default();
@@ -988,6 +1009,8 @@ fn expanded_corpus_preserves_dataset_and_conjunction_readings() {
         ("gj4rm4ru6fu6zp vu ", "數據及其分析"),
         ("1j4cjo4", "不會"),
         ("1u/4b;4", "並讓"),
+        ("5j0 04ru6", "專案集"),
+        ("5j0 04ru6fu6m4nj04", "專案及其預算"),
     ] {
         let view = client.type_text("editor", raw).view.unwrap();
         assert_eq!(view.converted_preedit, expected);

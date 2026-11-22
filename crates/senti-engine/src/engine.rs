@@ -342,6 +342,21 @@ impl InputEngine {
         }
         sort_by_score(&mut alternatives);
         self.candidates.extend(alternatives.into_iter().take(6));
+        for reading in senti_core::zhuyin::alternate_final_tones(&raw) {
+            if let Some(mut candidate) = self
+                .collect_for_mode(InputMode::Zhuyin, &reading)
+                .into_iter()
+                .find(|candidate| {
+                    candidate.source == CandidateSource::Lexicon
+                        && candidate.consumed == reading.len()
+                        && seen.insert((candidate.text.clone(), raw.len()))
+                })
+            {
+                candidate.source = CandidateSource::NearReading;
+                candidate.consumed = raw.len();
+                self.candidates.push(candidate);
+            }
+        }
     }
 
     fn handle_candidate_key(&mut self, key: KeyEvent) -> Option<KeyOutcome> {
@@ -1528,16 +1543,44 @@ impl InputEngine {
     }
 
     fn context_suggestion(&self) -> Option<String> {
-        let index = self.suggestion_index()?;
-        self.candidates[index]
-            .text
-            .strip_prefix(self.composition.remaining())
-            .map(str::to_owned)
+        if let Some(index) = self.suggestion_index() {
+            return self.candidates[index]
+                .text
+                .strip_prefix(self.composition.remaining())
+                .map(str::to_owned);
+        }
+        self.chinese_suggestion()
+    }
+
+    fn chinese_suggestion(&self) -> Option<String> {
+        if self.mode != InputMode::Mixed
+            || !self.config.association_enabled
+            || self.selecting
+            || self.editor.is_some()
+            || !self.following.is_empty()
+        {
+            return None;
+        }
+        let raw = self.composition.remaining();
+        let offset = self.composition.len() - raw.len();
+        let segment = self.decoded.segments.last().filter(|segment| {
+            segment.raw_start == offset
+                && segment.raw_end == self.composition.len()
+                && segment.mode == InputMode::Zhuyin
+                && segment.complete
+        })?;
+        self.ports
+            .predictors
+            .iter()
+            .find_map(|predictor| predictor.zhuyin_completion(raw, &segment.text))
     }
 
     /// Tab accepts the same completion currently displayed in preedit.
     pub fn accept_suggestion(&mut self) -> KeyOutcome {
         let Some(index) = self.suggestion_index() else {
+            if let Some(tail) = self.chinese_suggestion() {
+                return self.commit_decoded(&tail);
+            }
             return KeyOutcome::PassThrough;
         };
         if self.candidates[index].source != CandidateSource::Context {

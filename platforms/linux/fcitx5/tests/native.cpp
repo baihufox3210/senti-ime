@@ -283,6 +283,16 @@ int main(int argc, char **argv) {
         check(mixed.committed == "因為",
               "mixed first-tone word failed to commit");
         mixed.committed.clear();
+        type(engine, entry, mixed, "gj4rm4");
+        check(mixed.inputPanel().clientPreedit().toString() == "數據集",
+              "Chinese completion was not displayed");
+        key(engine, entry, mixed, FcitxKey_Return);
+        check(mixed.committed == "數據", "Enter committed the Chinese suggestion");
+        mixed.committed.clear();
+        type(engine, entry, mixed, "gj4rm4");
+        key(engine, entry, mixed, FcitxKey_Tab);
+        check(mixed.committed == "數據集", "Tab did not accept Chinese completion");
+        mixed.committed.clear();
         type(engine, entry, mixed, "su3cl3qzz");
         check(mixed.inputPanel().clientPreedit().toString() == "你好qzz",
               "invalid phonetic tail reverted Chinese");

@@ -190,6 +190,24 @@ pub fn nearby_readings(raw: &str) -> Vec<String> {
         .collect()
 }
 
+/// Offer alternate final tones only for fully specified readings.
+pub fn alternate_final_tones(raw: &str) -> impl Iterator<Item = String> {
+    let reading = canonical_code(raw).filter(|_| {
+        parse_tolerant(raw).is_some_and(|syllables| {
+            (1..=6).contains(&syllables.len()) && syllables.iter().all(|s| s.tone.is_some())
+        })
+    });
+    reading.into_iter().flat_map(|reading| {
+        let end = reading.len() - 1;
+        [' ', '6', '3', '4', '7']
+            .into_iter()
+            .filter_map(move |mark| {
+                (reading.as_bytes()[end] != mark as u8)
+                    .then(|| format!("{}{mark}", &reading[..end]))
+            })
+    })
+}
+
 /// Canonical code for learning; raw keys are retained separately for Ctrl+Enter.
 pub fn canonical_code(raw: &str) -> Option<String> {
     let syllables = parse_tolerant(raw)?;
