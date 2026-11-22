@@ -331,6 +331,26 @@ UD Chinese-GSD 測例使用不同資料及候選流程，兩者分數不可直�
 使用相同的 v0.2.13 選字權重、空白前文、混打及關閉學習。微調只改內建 v2。
 2–4 字的字元編輯距離由 323 降至 317，5–8 字由 606 降至 593。0c 的兩組距離為 234、308。
 
+### 多字對照微調與候選召回
+
+從 Chinese-GSD train 的真實文字抽取 32,000 組 2–4 字片段。對每個片段選一個可單獨確定讀音的字，
+最多比較四個同音替代，保留起始模型分數最高的一個反例。訓練成對比較整個片段分數的差，
+只更新中文輸出列，不擴大常駐模型。資料可由同一語料、詞庫、模型與種子重建，
+再現資料的 SHA-256 為 `dd4f6e0410cabb893156ca8dcbc680fb3dadf21b299c4ea43801e1cf13e94575`。
+
+開發集成對命中由 7,424／9,000 升至 7,538／9,000。以固定配置在 Chinese-GSD test 重播，
+2–4 字首選從 292 降到 291／512，字元錯誤從 317 降到 315。5–8 字首選兩版都是 204／512，
+字元錯誤同為 594。0c v0.2.13 首選為 335、304／512。因此正式版保留前一輪權重。
+擴大長片段 beam 從六到十二使開發集首選少一題。提高長片段三元模型權重則讓既有的「他玩得很開心」誤成「他完得很開心」，兩項調整皆未採用。
+
+用 `cargo build --release -p senti-predictors --example audit_zhuyin_paths` 建置詞圖檢查，
+再給 `scripts/evaluate_host_zhuyin.py` 的 `--path-audit` 傳入該執行檔。此檢查直接送完整讀音給
+正式內建詞圖，跳過原生混打的分段與外部模型。相同的 512 組長片段，完整候選只召回 269 組正解，
+其中 200 組已是詞圖首選。這項檢查可用來區分詞圖召回和重排，數字不能當成原生前端的候選可達率。
+
+重建實驗權重可先執行 `OPENBLAS_NUM_THREADS=2 python scripts/finetune_zhuyin_head.py --output target/zhuyin-head-ft`，
+再執行 `OPENBLAS_NUM_THREADS=2 python scripts/finetune_zhuyin_spans.py --base target/zhuyin-head-ft --output target/span-ft-rebuilt --epochs 8 --rate .14`。
+
 ### 建議的解碼與推論邊界
 
 ```text

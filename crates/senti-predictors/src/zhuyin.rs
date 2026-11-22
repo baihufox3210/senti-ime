@@ -464,19 +464,18 @@ impl Predictor for ZhuyinPredictor {
             .filter(|c| c.consumed < query.input.len())
             .map(|c| c.score)
             .max_by(f64::total_cmp);
-        let mut finals: Vec<_> = beams[n].iter().collect();
-        if n > 1 {
-            finals.sort_by(|a, b| {
-                let score = |path: &Path| {
-                    path.log_probability
-                        + 0.35
-                            * n as f64
-                            * crate::NeuralPredictor::sequence_score(query.previous, &path.text)
-                };
-                score(b).total_cmp(&score(a))
-            });
-        }
-        for (rank, path) in finals.into_iter().take(4).enumerate() {
+        let mut finals: Vec<_> = beams[n]
+            .iter()
+            .map(|path| {
+                let score = path.log_probability
+                    + 0.35
+                        * n as f64
+                        * crate::NeuralPredictor::sequence_score(query.previous, &path.text);
+                (score, path)
+            })
+            .collect();
+        finals.sort_by(|a, b| b.0.total_cmp(&a.0));
+        for (rank, (_, path)) in finals.into_iter().take(4).enumerate() {
             if path.words > 1 {
                 let score = 1.05
                     + 0.3 * path.weight / path.words as f64

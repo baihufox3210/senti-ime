@@ -174,6 +174,20 @@ def evaluate_0c(address, sample):
     }
 
 
+def audit_paths(executable, sample):
+    requests = ''.join(json.dumps([before, raw]) + '\n' for before, raw, _, _ in sample)
+    process = subprocess.run([str(executable.resolve())], input=requests, text=True,
+                             stdout=subprocess.PIPE, check=True)
+    rows = [json.loads(line) for line in process.stdout.splitlines()]
+    if len(rows) != len(sample):
+        raise RuntimeError('path audit did not return one row per case')
+    recall = first = 0
+    for (_, _, expected, _), paths in zip(sample, rows):
+        recall += expected in paths
+        first += bool(paths) and paths[0] == expected
+    return {'complete_path_recall': recall, 'first_complete_path': first}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('binaries', nargs='+', type=Path)
@@ -187,6 +201,7 @@ def main():
                         help='fresh isolated 0c benchmark server, never a desktop socket')
     parser.add_argument('--d512', type=Path, help='enable the same D512 model for every Senti binary')
     parser.add_argument('--qwen', type=Path, help='enable the same Qwen model for every Senti binary')
+    parser.add_argument('--path-audit', type=Path, help='release audit_zhuyin_paths example binary')
     args = parser.parse_args()
     if args.cases < 1:
         parser.error('--cases must be positive')
@@ -206,7 +221,10 @@ def main():
                    for binary in args.binaries}
     if args.zero_socket:
         results['0c'] = evaluate_0c(args.zero_socket, sample)
-    print(json.dumps({'cases': len(sample), 'hosts': results}, indent=2))
+    report = {'cases': len(sample), 'hosts': results}
+    if args.path_audit:
+        report['path_audit'] = audit_paths(args.path_audit, sample)
+    print(json.dumps(report, indent=2))
 
 
 if __name__ == '__main__':
