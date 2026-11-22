@@ -1,11 +1,11 @@
 //! Local candidate-scoring processes with a shared input-thread deadline.
 use std::{
-    cell::RefCell,
+    cell::{Cell, RefCell},
     io::{BufRead, BufReader, Write},
     path::Path,
     process::{Child, Command, Stdio},
     sync::{
-        Arc,
+        Arc, Mutex,
         atomic::{AtomicBool, Ordering},
         mpsc::{SyncSender, sync_channel},
     },
@@ -22,10 +22,19 @@ struct Request {
 #[derive(Debug)]
 pub struct LocalWordPredictor {
     kind: ModelKind,
-    child: Child,
+    worker: RefCell<Option<ModelWorker>>,
+    restart: Option<RefCell<Command>>,
+    idle_timeout: Option<Duration>,
+    last_launch: Cell<Option<Instant>>,
+    last_score: RefCell<Option<(String, Vec<f64>)>>,
+}
+
+#[derive(Debug)]
+struct ModelWorker {
+    child: Arc<Mutex<Option<Child>>>,
     requests: SyncSender<Request>,
     ready: Arc<AtomicBool>,
-    last_score: RefCell<Option<(String, Vec<f64>)>>,
+    finished: Arc<AtomicBool>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -59,10 +68,66 @@ impl LocalWordPredictor {
         if std::env::var_os("SENTI_IME_QWEN_CPU").as_deref() == Some(std::ffi::OsStr::new("1")) {
             command.arg("cpu");
         }
-        Self::start(command, ModelKind::Qwen)
+        Some(Self {
+            kind: ModelKind::Qwen,
+            worker: RefCell::new(None),
+            restart: Some(RefCell::new(command)),
+            idle_timeout: Some(Duration::from_secs(30)),
+            last_launch: Cell::new(None),
+            last_score: RefCell::new(None),
+        })
     }
 
     fn start(mut command: Command, kind: ModelKind) -> Option<Self> {
+        Some(Self {
+            kind,
+            worker: RefCell::new(Some(ModelWorker::start(&mut command, kind, None)?)),
+            restart: None,
+            idle_timeout: None,
+            last_launch: Cell::new(None),
+            last_score: RefCell::new(None),
+        })
+    }
+
+    fn ready_worker(&self) -> Option<SyncSender<Request>> {
+        let mut slot = self.worker.borrow_mut();
+        if slot
+            .as_ref()
+            .is_some_and(|worker| worker.finished.load(Ordering::Acquire))
+        {
+            slot.take();
+        }
+        if slot.is_none() {
+            let restart = self.restart.as_ref()?;
+            if self
+                .last_launch
+                .get()
+                .is_some_and(|last| last.elapsed() < Duration::from_secs(1))
+            {
+                return None;
+            }
+            self.last_launch.set(Some(Instant::now()));
+            *slot = ModelWorker::start(&mut restart.borrow_mut(), self.kind, self.idle_timeout);
+        }
+        slot.as_ref().and_then(|worker| {
+            worker
+                .ready
+                .load(Ordering::Acquire)
+                .then(|| worker.requests.clone())
+        })
+    }
+
+    #[cfg(test)]
+    fn is_ready(&self) -> bool {
+        self.worker
+            .borrow()
+            .as_ref()
+            .is_some_and(|worker| worker.ready.load(Ordering::Acquire))
+    }
+}
+
+impl ModelWorker {
+    fn start(command: &mut Command, kind: ModelKind, idle: Option<Duration>) -> Option<Self> {
         let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -71,43 +136,58 @@ impl LocalWordPredictor {
             .ok()?;
         let mut input = child.stdin.take().unwrap();
         let mut output = BufReader::new(child.stdout.take().unwrap());
+        let child = Arc::new(Mutex::new(Some(child)));
         let (requests, queue) =
             sync_channel::<Request>(usize::from(matches!(kind, ModelKind::Qwen)));
         let ready = Arc::new(AtomicBool::new(false));
+        let finished = Arc::new(AtomicBool::new(false));
         let worker_ready = ready.clone();
+        let worker_finished = finished.clone();
+        let worker_child = child.clone();
         std::thread::spawn(move || {
             let mut line = String::new();
-            if output.read_line(&mut line).is_err() || line.trim() != "ready" {
-                return;
-            }
-            worker_ready.store(true, Ordering::Release);
-            while let Ok(request) = queue.recv() {
-                line.clear();
-                if writeln!(input, "{}", request.payload).is_err()
-                    || !output.read_line(&mut line).is_ok_and(|len| len > 0)
-                {
-                    break;
+            if output.read_line(&mut line).is_ok() && line.trim() == "ready" {
+                worker_ready.store(true, Ordering::Release);
+                let receive = || match idle {
+                    Some(timeout) => queue.recv_timeout(timeout).ok(),
+                    None => queue.recv().ok(),
+                };
+                while let Some(request) = receive() {
+                    line.clear();
+                    if writeln!(input, "{}", request.payload).is_err()
+                        || !output.read_line(&mut line).is_ok_and(|len| len > 0)
+                    {
+                        break;
+                    }
+                    let _ = request
+                        .response
+                        .send(serde_json::from_str(&line).ok().flatten());
                 }
-                let _ = request
-                    .response
-                    .send(serde_json::from_str(&line).ok().flatten());
             }
             worker_ready.store(false, Ordering::Release);
+            Self::reap(&worker_child);
+            worker_finished.store(true, Ordering::Release);
         });
         Some(Self {
-            kind,
             child,
             requests,
             ready,
-            last_score: RefCell::new(None),
+            finished,
         })
+    }
+
+    fn reap(child: &Mutex<Option<Child>>) {
+        let child = child.lock().ok().and_then(|mut child| child.take());
+        if let Some(mut child) = child {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
     }
 }
 
-impl Drop for LocalWordPredictor {
+impl Drop for ModelWorker {
     fn drop(&mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
+        Self::reap(&self.child);
     }
 }
 
@@ -119,7 +199,17 @@ impl Predictor for LocalWordPredictor {
         }
     }
 
-    fn predict(&self, _query: &PredictionQuery<'_>) -> Vec<Candidate> {
+    fn predict(&self, query: &PredictionQuery<'_>) -> Vec<Candidate> {
+        // Warm on the first complete syllable when the left context can use
+        // Qwen, before a full candidate shortlist needs its scores.
+        if self.restart.is_some()
+            && query.mode == senti_core::InputMode::Zhuyin
+            && query.previous.is_some_and(has_qwen_context)
+            && zhuyin::parse_tolerant(query.input)
+                .is_some_and(|parts| parts.first().is_some_and(|part| part.tone.is_some()))
+        {
+            self.ready_worker();
+        }
         Vec::new()
     }
 
@@ -138,9 +228,7 @@ impl Predictor for LocalWordPredictor {
         words: &[&str],
         deadline: Instant,
     ) -> Option<WordModelScore> {
-        if !self.ready.load(Ordering::Acquire)
-            || !(2..=self.word_model_candidate_limit()).contains(&words.len())
-        {
+        if !(2..=self.word_model_candidate_limit()).contains(&words.len()) {
             return None;
         }
         let syllables = zhuyin::parse_tolerant(raw)?;
@@ -175,15 +263,7 @@ impl Predictor for LocalWordPredictor {
                 serde_json::to_string(&(before, sounds, words))
             }
             ModelKind::Qwen => {
-                if after.trim().is_empty()
-                    && before
-                        .chars()
-                        .rev()
-                        .take_while(|&c| crate::zhuyin_ngrams::is_han(c))
-                        .take(4)
-                        .count()
-                        < 4
-                {
+                if after.trim().is_empty() && !has_qwen_context(&before) {
                     return None;
                 }
                 let after: String = after.chars().take(16).collect();
@@ -202,7 +282,7 @@ impl Predictor for LocalWordPredictor {
             ModelKind::Qwen => remaining.min(Duration::from_millis(5)),
         };
         let (response, result) = sync_channel(1);
-        self.requests
+        self.ready_worker()?
             .try_send(Request {
                 payload: payload.clone(),
                 response,
@@ -223,9 +303,81 @@ impl Predictor for LocalWordPredictor {
     }
 }
 
+fn has_qwen_context(text: &str) -> bool {
+    text.chars()
+        .rev()
+        .take_while(|&c| crate::zhuyin_ngrams::is_han(c))
+        .take(4)
+        .count()
+        == 4
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn lazy_worker_reaps_after_idle_and_can_score_again() {
+        let mut command = Command::new("sh");
+        command.args([
+            "-c",
+            "printf 'ready\n'; while read -r line; do printf '[2, 1]\n'; done",
+        ]);
+        let model = LocalWordPredictor {
+            kind: ModelKind::Qwen,
+            worker: RefCell::new(None),
+            restart: Some(RefCell::new(command)),
+            idle_timeout: Some(Duration::from_millis(150)),
+            last_launch: Cell::new(None),
+            last_score: RefCell::new(None),
+        };
+        let score = |before: &str| {
+            let until = Instant::now() + Duration::from_secs(3);
+            loop {
+                if let Some(WordModelScore::Ready(scores)) = model.rank_word(
+                    "y4ru3",
+                    before,
+                    "",
+                    &["自己", "字己"],
+                    Instant::now() + Duration::from_millis(15),
+                ) {
+                    return scores;
+                }
+                assert!(Instant::now() < until);
+                std::thread::sleep(Duration::from_millis(5));
+            }
+        };
+        assert!(model.worker.borrow().is_none());
+        assert_eq!(score("請介紹一下你"), [2.0, 1.0]);
+        let until = Instant::now() + Duration::from_secs(2);
+        loop {
+            if model
+                .worker
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .finished
+                .load(Ordering::Acquire)
+            {
+                break;
+            }
+            assert!(Instant::now() < until);
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert!(
+            model
+                .worker
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .child
+                .lock()
+                .unwrap()
+                .is_none()
+        );
+        assert_eq!(score("還請介紹一下你"), [2.0, 1.0]);
+    }
 
     #[cfg(unix)]
     #[test]
@@ -234,7 +386,7 @@ mod tests {
         command.args(["-c", "printf 'ready\n'; read -r first; sleep 0.2; printf '[10, 20]\n'; while read -r line; do printf '[30, 40]\n'; done"]);
         let model = LocalWordPredictor::start(command, ModelKind::Qwen).unwrap();
         let until = Instant::now() + Duration::from_secs(3);
-        while !model.ready.load(Ordering::Acquire) {
+        while !model.is_ready() {
             assert!(Instant::now() < until);
             std::thread::sleep(Duration::from_millis(5));
         }
@@ -273,7 +425,7 @@ mod tests {
         command.args(["-c", "printf 'ready\n'; read -r request; exit 1"]);
         let model = LocalWordPredictor::start(command, ModelKind::Qwen).unwrap();
         let until = Instant::now() + Duration::from_secs(3);
-        while !model.ready.load(Ordering::Acquire) {
+        while !model.is_ready() {
             assert!(Instant::now() < until);
             std::thread::sleep(Duration::from_millis(5));
         }
@@ -289,7 +441,7 @@ mod tests {
                     )
                     .is_none()
             );
-            if !model.ready.load(Ordering::Acquire) {
+            if !model.is_ready() {
                 break;
             }
             assert!(Instant::now() < until);
