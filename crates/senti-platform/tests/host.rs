@@ -969,6 +969,24 @@ fn following_context_changes_ranking_without_changing_the_replacement_span() {
 }
 
 #[test]
+fn right_hand_text_disambiguates_the_current_word_without_committing_the_neighbours() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    client.send(Command::Surrounding {
+        context: "editor".into(),
+        before_cursor: "片進行拍攝，通常具有連續或單元劇情，且大部份是以".into(),
+        after_cursor: "童為主要受眾的動畫作品。".into(),
+    });
+    let view = client.type_text("editor", "c96").view.unwrap();
+    assert_eq!(view.converted_preedit, "孩");
+    assert!(!view.selecting);
+    assert_eq!(
+        client.key("editor", PlatformKey::Enter).commit.as_deref(),
+        Some("孩")
+    );
+}
+
+#[test]
 fn local_auto_conversion_uses_right_context_and_preserves_manual_choice() {
     let mut client = Client::new(AppOptions::ephemeral());
     client.focus("editor", false);

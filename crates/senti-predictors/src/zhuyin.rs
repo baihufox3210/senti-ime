@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::tsv::{LexiconError, records};
-use crate::zhuyin_ngrams::{CharacterModel, History};
+use crate::zhuyin_ngrams::{CharacterModel, History, is_han};
 
 #[derive(Debug, Clone)]
 struct Entry {
@@ -274,7 +274,22 @@ impl Predictor for ZhuyinPredictor {
                     .language_model
                     .lift(text.chars().next_back(), next)
             });
-        0.035 * (left + right).clamp(-2.0, 2.0)
+        let boundary = next
+            .filter(|next| {
+                !text.is_empty() && next.chars().take(2).filter(|&c| is_han(c)).count() == 2
+            })
+            .map_or(0.0, |next| {
+                let end = next
+                    .char_indices()
+                    .nth(2)
+                    .map_or(next.len(), |(index, _)| index);
+                let next = &next[..end];
+                let model = CharacterModel::shared();
+                let with_candidate = model.score(History::from_text(Some(text)), next).1;
+                let without_candidate = model.score(History::default(), next).1;
+                (with_candidate - without_candidate).clamp(-3.0, 3.0)
+            });
+        0.035 * (left + right).clamp(-2.0, 2.0) + 0.075 * boundary
     }
 
     fn predict(&self, query: &PredictionQuery<'_>) -> Vec<Candidate> {

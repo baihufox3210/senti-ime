@@ -15,7 +15,7 @@ from tempfile import TemporaryDirectory
 from train_neural import ROOT, read_corpus
 
 
-def cases(limit, split='test', min_length=2, max_length=4):
+def cases(limit, split='test', min_length=2, max_length=4, following=False):
     readings = defaultdict(set)
     data = ROOT / 'crates/senti-predictors/data'
     for name in ('zhuyin.tsv', 'zhuyin_extra.tsv'):
@@ -34,7 +34,10 @@ def cases(limit, split='test', min_length=2, max_length=4):
                 if len(words) == length and all(len(readings[word]) == 1 for word in words):
                     before = ''.join(tokens[max(0, start - 24):start])
                     keys = ''.join(next(iter(readings[word])) for word in words)
-                    pool.append((before, keys, ''.join(words)))
+                    tail = tokens[start + length:start + length + 24]
+                    if following and (not tail or not ('\u3400' <= tail[0] <= '\u9fff')):
+                        continue
+                    pool.append((before, keys, ''.join(words), ''.join(tail) if following else ''))
     sample_size = min(len(pool), limit)
     return [pool[index * len(pool) // sample_size] for index in range(sample_size)]
 
@@ -76,9 +79,9 @@ def evaluate(binary, sample, directory, d512=None):
         context = 'evaluation'
         send({'type': 'activate', 'context': context, 'mode': 'Mixed', 'app': 'Document'})
         send({'type': 'set_learning', 'enabled': False})
-        for before, raw, expected in sample:
+        for before, raw, expected, after in sample:
             send({'type': 'reset', 'context': context})
-            send({'type': 'surrounding', 'context': context, 'before_cursor': before})
+            send({'type': 'surrounding', 'context': context, 'before_cursor': before, 'after_cursor': after})
             prefix = ''
             for character in raw:
                 key = {'name': 'space'} if character == ' ' else {'name': 'character', 'value': character}
@@ -110,7 +113,7 @@ def evaluate(binary, sample, directory, d512=None):
         "exact_previews": correct,
         "preview_or_first_page": visible,
         "character_errors": character_errors,
-        "reference_characters": sum(len(expected) for _, _, expected in sample),
+        "reference_characters": sum(len(expected) for _, _, expected, _ in sample),
         "preview_commit_mismatches": preview_commit_mismatches,
         "preview_and_candidates_sha256": output_hash.hexdigest(),
     }
@@ -138,7 +141,7 @@ def evaluate_0c(address, sample):
             return response
 
         info = send('health').get('info', {})
-        for _, raw, expected in sample:
+        for _, raw, expected, _ in sample:
             session = send('open')['session']
             send('handle', session, type='pause', on=True)
             prefix = ''
@@ -155,7 +158,7 @@ def evaluate_0c(address, sample):
     return {
         'exact_previews': correct,
         'character_errors': character_errors,
-        'reference_characters': sum(len(expected) for _, _, expected in sample),
+        'reference_characters': sum(len(expected) for _, _, expected, _ in sample),
         'server': {key: value for key, value in info.items()
                    if key.startswith('neural') or key in ('version', 'selection_state', 'mixed_input')},
     }
@@ -168,6 +171,7 @@ def main():
     parser.add_argument('--split', choices=('dev', 'test'), default='test')
     parser.add_argument('--min-length', type=int, default=2)
     parser.add_argument('--max-length', type=int, default=4)
+    parser.add_argument('--following', action='store_true', help='include actual right-hand text from the corpus')
     parser.add_argument('--without-context', action='store_true')
     parser.add_argument('--0c-socket', dest='zero_socket', type=Path,
                         help='fresh isolated 0c benchmark server, never a desktop socket')
@@ -177,13 +181,15 @@ def main():
         parser.error('--cases must be positive')
     if not 1 <= args.min_length <= args.max_length <= 24:
         parser.error('expected 1 <= min-length <= max-length <= 24')
+    if args.following and args.without_context:
+        parser.error('--following and --without-context are mutually exclusive')
     if args.zero_socket and not args.without_context:
         parser.error('--0c-socket requires --without-context for a shared left context')
-    sample = cases(args.cases, args.split, args.min_length, args.max_length)
+    sample = cases(args.cases, args.split, args.min_length, args.max_length, args.following)
     if not sample:
         parser.error('no eligible cases found')
     if args.without_context:
-        sample = [('', raw, expected) for _, raw, expected in sample]
+        sample = [('', raw, expected, '') for _, raw, expected, _ in sample]
     with TemporaryDirectory(prefix='senti-host-eval-') as directory:
         results = {str(binary): evaluate(binary, sample, Path(directory), args.d512)
                    for binary in args.binaries}

@@ -2,6 +2,10 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
+pub(crate) fn is_han(character: char) -> bool {
+    matches!(character, '\u{3400}'..='\u{9fff}' | '\u{20000}'..='\u{323af}')
+}
+
 #[derive(Clone, Copy, Default)]
 pub(crate) struct History([u32; 2]);
 
@@ -17,7 +21,7 @@ impl History {
     }
 
     fn push(&mut self, character: char) {
-        self.0 = if matches!(character, '\u{3400}'..='\u{9fff}' | '\u{20000}'..='\u{323af}') {
+        self.0 = if is_han(character) {
             [self.0[1], character as u32]
         } else {
             [0, 0]
