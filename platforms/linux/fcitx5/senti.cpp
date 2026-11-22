@@ -343,14 +343,14 @@ void Engine::reset(const fcitx::InputMethodEntry &,
   }
 }
 void Engine::keyEvent(const fcitx::InputMethodEntry &, fcitx::KeyEvent &event) {
+  const auto sym = event.key().sym();
+  if (event.isRelease() || sym == FcitxKey_Shift_L || sym == FcitxKey_Shift_R)
+    return;
   auto *ic = event.inputContext();
   try {
     ensureActive(ic);
     if (sensitive(ic))
       return; // Never send password/sensitive keystrokes to the subprocess.
-    auto sym = event.key().sym();
-    if (event.isRelease() && sym != FcitxKey_Shift_L && sym != FcitxKey_Shift_R)
-      return;
     const char *name = "other";
     switch (sym) {
     case FcitxKey_space:
@@ -401,10 +401,6 @@ void Engine::keyEvent(const fcitx::InputMethodEntry &, fcitx::KeyEvent &event) {
     case FcitxKey_Page_Down:
     case FcitxKey_KP_Next:
       name = "page_down";
-      break;
-    case FcitxKey_Shift_L:
-    case FcitxKey_Shift_R:
-      name = "shift";
       break;
     default:
       break;

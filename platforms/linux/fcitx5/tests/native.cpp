@@ -157,18 +157,17 @@ int main(int argc, char **argv) {
         key(engine, defaultEntry, initial, FcitxKey_Shift_L);
         key(engine, defaultEntry, initial, FcitxKey_Shift_L, fcitx::KeyStates(),
             true);
-        check(engine->subModeLabel(defaultEntry, initial) == "EN",
-              "Shift did not toggle English");
-        type(engine, defaultEntry, initial, "su3cl3");
-        check(initial.inputPanel().clientPreedit().toString() == "su3cl3",
-              "explicit English converted phonetic keys");
-        key(engine, defaultEntry, initial, FcitxKey_Escape);
-        key(engine, defaultEntry, initial, FcitxKey_Shift_L);
-        key(engine, defaultEntry, initial, FcitxKey_Shift_L, fcitx::KeyStates(),
+        check(engine->subModeLabel(defaultEntry, initial) == "混",
+              "Left Shift changed the mixed mode");
+        type(engine, defaultEntry, initial, "su3");
+        key(engine, defaultEntry, initial, FcitxKey_Shift_R);
+        key(engine, defaultEntry, initial, FcitxKey_Shift_R, fcitx::KeyStates(),
             true);
-        type(engine, defaultEntry, initial, "su3cl3");
+        check(engine->subModeLabel(defaultEntry, initial) == "混",
+              "Right Shift changed the mixed mode");
+        type(engine, defaultEntry, initial, "cl3");
         check(initial.inputPanel().clientPreedit().toString() == "你好",
-              "Shift did not restore mixed input");
+              "Shift interrupted mixed composition");
         engine->deactivate(defaultEntry, initialFocus);
       }
       {
