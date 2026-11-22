@@ -10,6 +10,7 @@ import shutil
 import socket
 import struct
 import subprocess
+import time
 from tempfile import TemporaryDirectory
 
 from train_neural import ROOT, read_corpus
@@ -52,12 +53,14 @@ def edit_distance(expected, actual):
     return row[-1]
 
 
-def evaluate(binary, sample, directory, d512=None):
+def evaluate(binary, sample, directory, d512=None, qwen=None):
     env = os.environ.copy()
     for key in ('SENTI_IME_D512_MODEL', 'SENTI_IME_QWEN_MODEL'):
         env.pop(key, None)
     if d512 is not None:
         env['SENTI_IME_D512_MODEL'] = str(d512.resolve())
+    if qwen is not None:
+        env['SENTI_IME_QWEN_MODEL'] = str(qwen.resolve())
     correct = visible = character_errors = preview_commit_mismatches = 0
     output_hash = hashlib.sha256()
     # The native host discovers optional model folders beside its executable.
@@ -79,6 +82,8 @@ def evaluate(binary, sample, directory, d512=None):
         context = 'evaluation'
         send({'type': 'activate', 'context': context, 'mode': 'Mixed', 'app': 'Document'})
         send({'type': 'set_learning', 'enabled': False})
+        if qwen is not None:
+            time.sleep(1)
         for before, raw, expected, after in sample:
             send({'type': 'reset', 'context': context})
             send({'type': 'surrounding', 'context': context, 'before_cursor': before, 'after_cursor': after})
@@ -90,6 +95,11 @@ def evaluate(binary, sample, directory, d512=None):
                 prefix += response['commit'] or ''
                 if not response['consumed']:
                     prefix += character
+            deadline = time.monotonic() + 0.25
+            while view.get('model_pending') and time.monotonic() < deadline:
+                time.sleep(0.01)
+                view = send({'type': 'poll_word_model', 'context': context,
+                             'revision': view['decode_revision']})['view']
             preview = prefix + view['converted_preedit']
             preview_matches = preview == expected
             correct += preview_matches
@@ -176,6 +186,7 @@ def main():
     parser.add_argument('--0c-socket', dest='zero_socket', type=Path,
                         help='fresh isolated 0c benchmark server, never a desktop socket')
     parser.add_argument('--d512', type=Path, help='enable the same D512 model for every Senti binary')
+    parser.add_argument('--qwen', type=Path, help='enable the same Qwen model for every Senti binary')
     args = parser.parse_args()
     if args.cases < 1:
         parser.error('--cases must be positive')
@@ -191,7 +202,7 @@ def main():
     if args.without_context:
         sample = [('', raw, expected, '') for _, raw, expected, _ in sample]
     with TemporaryDirectory(prefix='senti-host-eval-') as directory:
-        results = {str(binary): evaluate(binary, sample, Path(directory), args.d512)
+        results = {str(binary): evaluate(binary, sample, Path(directory), args.d512, args.qwen)
                    for binary in args.binaries}
     if args.zero_socket:
         results['0c'] = evaluate_0c(args.zero_socket, sample)

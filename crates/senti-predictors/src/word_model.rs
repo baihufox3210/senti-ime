@@ -175,9 +175,15 @@ impl Predictor for LocalWordPredictor {
                 serde_json::to_string(&(before, sounds, words))
             }
             ModelKind::Qwen => {
-                // D512 specializes in reading-conditioned left context.
-                // Qwen adds evidence when there is text after the edit.
-                if after.trim().is_empty() {
+                if after.trim().is_empty()
+                    && before
+                        .chars()
+                        .rev()
+                        .take_while(|&c| crate::zhuyin_ngrams::is_han(c))
+                        .take(4)
+                        .count()
+                        < 4
+                {
                     return None;
                 }
                 let after: String = after.chars().take(16).collect();
@@ -288,6 +294,40 @@ mod tests {
             }
             assert!(Instant::now() < until);
             std::thread::sleep(Duration::from_millis(5));
+        }
+    }
+
+    #[test]
+    fn qwen_scores_left_context_when_weights_are_available() {
+        let Some(path) = std::env::var_os("SENTI_IME_QWEN_TEST_MODEL") else {
+            return;
+        };
+        let model = LocalWordPredictor::open_qwen(Path::new(&path)).expect("model directory");
+        let until = Instant::now() + Duration::from_secs(5);
+        loop {
+            let scores = match model.rank_word(
+                "y4ru3",
+                "請介紹一下你",
+                "",
+                &["自己", "字己"],
+                Instant::now() + Duration::from_millis(15),
+            ) {
+                Some(WordModelScore::Ready(scores)) => Some(scores),
+                Some(WordModelScore::Deferred(result)) => result
+                    .recv_timeout(Duration::from_millis(250))
+                    .ok()
+                    .flatten(),
+                None => None,
+            };
+            if let Some(scores) = scores {
+                assert!(scores[0] > scores[1], "{scores:?}");
+                break;
+            }
+            assert!(
+                Instant::now() < until,
+                "Qwen left-context scores unavailable"
+            );
+            std::thread::sleep(Duration::from_millis(20));
         }
     }
 
