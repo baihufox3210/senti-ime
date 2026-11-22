@@ -181,11 +181,14 @@ def audit_paths(executable, sample):
     rows = [json.loads(line) for line in process.stdout.splitlines()]
     if len(rows) != len(sample):
         raise RuntimeError('path audit did not return one row per case')
-    recall = first = 0
-    for (_, _, expected, _), paths in zip(sample, rows):
+    recall = first = merged = 0
+    for (_, _, expected, _), row in zip(sample, rows):
+        paths = row['graph'] if isinstance(row, dict) else row
         recall += expected in paths
         first += bool(paths) and paths[0] == expected
-    return {'complete_path_recall': recall, 'first_complete_path': first}
+        merged += expected in paths or (isinstance(row, dict) and expected in row['model'])
+    return {'complete_path_recall': recall, 'first_complete_path': first,
+            'graph_or_model_path_recall': merged}
 
 
 def main():

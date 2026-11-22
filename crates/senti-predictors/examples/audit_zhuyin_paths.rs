@@ -22,7 +22,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .filter(|candidate| candidate.consumed == raw.len())
             .map(|candidate| candidate.text)
             .collect();
-        println!("{}", serde_json::to_string(&result)?);
+        let model: Vec<_> = predictor
+            .phonetic_paths(&raw, Some(&previous))
+            .into_iter()
+            .map(|candidate| candidate.text)
+            .collect();
+        println!("{}", serde_json::json!({"graph": result, "model": model}));
     }
     Ok(())
 }
