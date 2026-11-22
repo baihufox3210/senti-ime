@@ -127,6 +127,7 @@ def main():
     binary = raw[:32] + b''.join(array.astype('<f4').tobytes() for array in arrays)
     (args.output / 'model.bin').write_bytes(binary)
     (args.output / 'vocab.json').write_bytes(vocabulary)
+    np.savez(args.output / 'training-checkpoint.npz', **state)
     report = {'base_sha256': hashlib.sha256(raw).hexdigest(),
               'model_sha256': hashlib.sha256(binary).hexdigest(), 'training_cases': len(x),
               'epochs': args.epochs, 'rate': args.rate, 'dev_before': before, 'dev_after': best,
