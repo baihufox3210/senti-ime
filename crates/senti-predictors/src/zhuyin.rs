@@ -396,6 +396,8 @@ impl Predictor for ZhuyinPredictor {
             words: usize,
         }
         let n = syllables.len();
+        // A weaker word prior leaves room for paths spanning several words.
+        let word_prior = if n >= 5 { 0.90 } else { 1.0 };
         let mut beams: Vec<Vec<Path>> = vec![Vec::new(); n + 1];
         beams[0].push(Path {
             log_probability: 0.0,
@@ -420,7 +422,8 @@ impl Predictor for ZhuyinPredictor {
                         (path.history, 0.0)
                     };
                     let log_probability = path.log_probability
-                        + ((f64::from(entry.frequency) + 1.0) / self.data.total_frequency).ln()
+                        + word_prior
+                            * ((f64::from(entry.frequency) + 1.0) / self.data.total_frequency).ln()
                         + (if n <= 2 { 0.45 } else { 0.10 }) * language_score
                         + 0.45 * self.data.language_model.score(previous, &entry.text);
                     let beam = &mut beams[j];

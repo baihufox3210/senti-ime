@@ -351,6 +351,16 @@ UD Chinese-GSD 測例使用不同資料及候選流程，兩者分數不可直�
 重建實驗權重可先執行 `OPENBLAS_NUM_THREADS=2 python scripts/finetune_zhuyin_head.py --output target/zhuyin-head-ft`，
 再執行 `OPENBLAS_NUM_THREADS=2 python scripts/finetune_zhuyin_spans.py --base target/zhuyin-head-ft --output target/span-ft-rebuilt --epochs 8 --rate .14`。
 
+### 長片段詞圖與局部選詞
+
+在相同 512 組 5–8 字測例中，完整候選召回和原生首選分開量測。降低五音節以上詞圖的詞頻先驗權重，
+讓跨詞語境在相同搜尋寬度內多保留少數路徑。詞圖召回由 269 升到 270，搭配同一份 D512 的
+原生首選由 204 升到 207，字元編輯距離由 596 降到 592。最多六條路徑的搜尋預算與模型權重不變。
+每種詞尾只保留兩條中間路徑的試驗在開發集由 282 降到 281，未採用。
+
+最後一個詞的修正由 Shift+↓ 進入。只在混打組字末尾以詞庫和原始鍵碼找出當前尾詞，尊重手選錨點；
+無法確定尾詞時沿用 ↓ 的最後一字操作。候選窗和自動選字共用組字資料，選字只替換目標詞。
+
 ### 建議的解碼與推論邊界
 
 ```text
