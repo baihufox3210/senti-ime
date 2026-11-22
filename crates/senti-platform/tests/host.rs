@@ -969,6 +969,65 @@ fn following_context_changes_ranking_without_changing_the_replacement_span() {
 }
 
 #[test]
+fn phonetic_paths_require_explicit_selection_and_keep_the_neighbouring_word() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    let draft = client.type_text("editor", "g4ru,4su3cl3").view.unwrap();
+    assert_eq!(draft.converted_preedit, "世界你好");
+    assert!(
+        !draft
+            .candidates
+            .iter()
+            .any(|entry| entry.source == "phonetic_model")
+    );
+    let mut view = client
+        .modified(
+            "editor",
+            PlatformKey::Down,
+            Modifiers {
+                shift: true,
+                ..Modifiers::default()
+            },
+            false,
+        )
+        .view
+        .unwrap();
+    let alternative = loop {
+        assert_eq!(view.converted_preedit, "世界你好");
+        if let Some(candidate) = view
+            .candidates
+            .into_iter()
+            .find(|entry| entry.source == "phonetic_model" && entry.text.chars().count() == 2)
+        {
+            break candidate;
+        }
+        assert!(
+            view.page + 1 < view.page_count,
+            "missing independent model path"
+        );
+        view = client.key("editor", PlatformKey::PageDown).view.unwrap();
+    };
+    let selected = client
+        .send(Command::Select {
+            context: "editor".into(),
+            label: alternative.label,
+        })
+        .view
+        .unwrap();
+    assert_eq!(
+        selected.converted_preedit,
+        format!("世界{}", alternative.text)
+    );
+    assert_eq!(
+        client
+            .key("editor", PlatformKey::CommitRaw)
+            .commit
+            .as_deref(),
+        Some("g4ru,4su3cl3")
+    );
+}
+
+#[test]
 fn shifted_down_targets_the_last_word_without_changing_earlier_text() {
     let mut client = Client::new(AppOptions::ephemeral());
     client.focus("editor", false);

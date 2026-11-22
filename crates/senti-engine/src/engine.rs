@@ -306,8 +306,12 @@ impl InputEngine {
         if !matches!(self.mode, InputMode::Mixed | InputMode::Zhuyin) {
             return;
         }
-        self.candidates
-            .retain(|candidate| candidate.source != CandidateSource::NearReading);
+        self.candidates.retain(|candidate| {
+            !matches!(
+                candidate.source,
+                CandidateSource::NearReading | CandidateSource::PhoneticModel
+            )
+        });
         let raw = if let Some(editor) = &self.editor {
             let Some(raw) = editor.target_raw() else {
                 return;
@@ -322,6 +326,63 @@ impl InputEngine {
             .iter()
             .map(|c| (c.text.clone(), c.consumed))
             .collect();
+        let previous = self.editor.as_ref().map_or_else(
+            || self.composition.selected_text(),
+            |editor| editor.left_context(),
+        );
+        let previous = format!("{}{previous}", self.surrounding);
+        let mut model_paths: Vec<_> = self
+            .ports
+            .predictors
+            .iter()
+            .flat_map(|predictor| predictor.phonetic_paths(&raw, Some(&previous)))
+            .filter(|candidate| candidate.consumed == raw.len())
+            .collect();
+        if let Some(window) = self
+            .editor
+            .as_ref()
+            .and_then(|editor| editor.phonetic_window())
+        {
+            let before = format!("{}{}", self.surrounding, window.before);
+            for candidate in self
+                .ports
+                .predictors
+                .iter()
+                .flat_map(|predictor| predictor.phonetic_paths(&window.raw, Some(&before)))
+            {
+                if let Some(text) = candidate
+                    .text
+                    .strip_prefix(&window.left_anchor)
+                    .and_then(|text| text.strip_suffix(&window.right_anchor))
+                    .filter(|text| !text.is_empty())
+                {
+                    model_paths.push(
+                        Candidate::new(
+                            text,
+                            raw.len(),
+                            candidate.score,
+                            CandidateSource::PhoneticModel,
+                        )
+                        .with_mode(InputMode::Zhuyin)
+                        .with_annotation(senti_core::zhuyin::display(&raw)),
+                    );
+                }
+            }
+        }
+        let following = self.editor.as_ref().map_or_else(
+            || self.following.clone(),
+            |editor| self.editor_right_context(editor.target_end()),
+        );
+        for candidate in &mut model_paths {
+            candidate.score += self.right_context_score(&candidate.text, &following);
+        }
+        sort_by_score(&mut model_paths);
+        self.candidates.extend(
+            model_paths
+                .into_iter()
+                .filter(|candidate| seen.insert((candidate.text.clone(), raw.len())))
+                .take(4),
+        );
         let mut alternatives = Vec::new();
         for reading in readings {
             let words = self.collect_for_mode(InputMode::Zhuyin, &reading);

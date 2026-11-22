@@ -79,6 +79,8 @@ pub enum CandidateSource {
     ToneCorrection,
     /// A nearby pronunciation offered explicitly in the candidate window.
     NearReading,
+    /// A same-reading path composed independently from character predictions.
+    PhoneticModel,
     /// Something the user typed before.
     UserHistory,
     /// Next-word prediction after a commit.
@@ -101,6 +103,7 @@ impl CandidateSource {
             CandidateSource::SentenceAlternative => "sentence_alternative",
             CandidateSource::ToneCorrection => "tone_correction",
             CandidateSource::NearReading => "near_reading",
+            CandidateSource::PhoneticModel => "phonetic_model",
             CandidateSource::UserHistory => "learned",
             CandidateSource::Association => "next",
             CandidateSource::Context => "context",
@@ -112,8 +115,10 @@ impl CandidateSource {
 
     /// Variants offered only for explicit selection.
     pub fn requires_explicit_selection(&self) -> bool {
-        matches!(self, CandidateSource::NearReading)
-            || matches!(self, CandidateSource::Plugin(id) if id == "emoji")
+        matches!(
+            self,
+            CandidateSource::NearReading | CandidateSource::PhoneticModel
+        ) || matches!(self, CandidateSource::Plugin(id) if id == "emoji")
     }
 
     /// Whether committing a candidate from this source should update the

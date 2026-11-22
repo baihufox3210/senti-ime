@@ -9,6 +9,14 @@ pub(super) struct Editor {
     target_end: usize,
     corrections: Vec<(InputMode, String, String, String)>,
 }
+
+pub(super) struct PhoneticWindow {
+    pub raw: String,
+    pub before: String,
+    pub left_anchor: String,
+    pub right_anchor: String,
+}
+
 impl Editor {
     pub(super) fn selections(&self) -> &[Selection] {
         &self.units
@@ -41,6 +49,50 @@ impl Editor {
                 .iter()
                 .map(|u| u.raw.len())
                 .sum()
+        })
+    }
+    pub(super) fn target_end(&self) -> usize {
+        self.target_end
+    }
+
+    pub(super) fn phonetic_window(&self) -> Option<PhoneticWindow> {
+        let focus = self.focus()?;
+        let end = self.target_end;
+        let is_syllable = |unit: &Selection| {
+            unit.input_mode == Some(InputMode::Zhuyin)
+                && unit.text.chars().count() == 1
+                && senti_core::zhuyin::parse_tolerant(&unit.raw)
+                    .is_some_and(|syllables| syllables.len() == 1 && syllables[0].tone.is_some())
+        };
+        if self.typing.is_some() || !self.units[focus..end].iter().all(is_syllable) {
+            return None;
+        }
+        let available = 8usize.checked_sub(end - focus)?;
+        let left = self.units[..focus]
+            .iter()
+            .rev()
+            .take(available.div_ceil(2))
+            .take_while(|unit| is_syllable(unit))
+            .count();
+        let right = self.units[end..]
+            .iter()
+            .take(available - left)
+            .take_while(|unit| is_syllable(unit))
+            .count();
+        if left + right == 0 {
+            return None;
+        }
+        let start = focus - left;
+        let stop = end + right;
+        let text = |units: &[Selection]| units.iter().map(|unit| unit.text.as_str()).collect();
+        Some(PhoneticWindow {
+            raw: self.units[start..stop]
+                .iter()
+                .map(|unit| unit.raw.as_str())
+                .collect(),
+            before: text(&self.units[..start]),
+            left_anchor: text(&self.units[start..focus]),
+            right_anchor: text(&self.units[end..stop]),
         })
     }
     fn lookahead_end(&self, focus: usize) -> usize {
@@ -387,7 +439,7 @@ impl InputEngine {
         sort_by_score(&mut candidates);
         candidates
     }
-    fn editor_right_context(&self, start: usize) -> String {
+    pub(super) fn editor_right_context(&self, start: usize) -> String {
         self.editor.as_ref().unwrap().units[start..]
             .iter()
             .map(|unit| unit.text.as_str())

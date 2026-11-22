@@ -328,6 +328,51 @@ impl NeuralPredictor {
     pub(crate) fn sequence_score(before: Option<&str>, text: &str) -> f64 {
         f64::from(Model::shared().sequence(before, text))
     }
+
+    /// Decode a path through per-syllable character sets. Each expansion uses
+    /// one neural state per surviving path, shared by all its next characters.
+    pub(crate) fn phonetic_paths(
+        before: Option<&str>,
+        readings: &[Vec<&str>],
+    ) -> Vec<(f64, String)> {
+        let model = Model::shared();
+        let mut paths = vec![(0.0, String::new(), model.ids(before.unwrap_or("")))];
+        for characters in readings {
+            let mut expanded = Vec::new();
+            for (index, (score, _, history)) in paths.iter().enumerate() {
+                let (hidden, _) = model.forward(history);
+                for &text in characters {
+                    let Some(&id) = model.ids.get(text) else {
+                        continue;
+                    };
+                    expanded.push((score + f64::from(model.logit(&hidden, id)), index, id));
+                }
+            }
+            expanded.sort_unstable_by(|a, b| {
+                b.0.total_cmp(&a.0)
+                    .then_with(|| (a.1, a.2).cmp(&(b.1, b.2)))
+            });
+            paths = expanded
+                .into_iter()
+                .take(4)
+                .map(|(score, index, id)| {
+                    let (_, prefix, history) = &paths[index];
+                    let mut text = prefix.clone();
+                    text.push_str(&model.tokens[id]);
+                    let mut history = history.clone();
+                    history.push(id);
+                    (score, text, history)
+                })
+                .collect();
+            if paths.is_empty() {
+                break;
+            }
+        }
+        paths
+            .into_iter()
+            .map(|(score, text, _)| (score / readings.len() as f64, text))
+            .collect()
+    }
 }
 impl Predictor for NeuralPredictor {
     fn id(&self) -> &'static str {

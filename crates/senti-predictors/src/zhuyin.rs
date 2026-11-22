@@ -306,6 +306,42 @@ impl Predictor for ZhuyinPredictor {
         best.text.strip_prefix(displayed).map(str::to_owned)
     }
 
+    fn phonetic_paths(&self, raw: &str, previous: Option<&str>) -> Vec<Candidate> {
+        let Some(syllables) = zhuyin::parse_tolerant(raw).filter(|syllables| {
+            (2..=8).contains(&syllables.len())
+                && syllables.iter().all(|syllable| syllable.tone.is_some())
+        }) else {
+            return Vec::new();
+        };
+        let readings: Vec<Vec<_>> = syllables
+            .iter()
+            .map(|syllable| {
+                let mut options: Vec<_> = self
+                    .matches_at(std::slice::from_ref(syllable))
+                    .map(|(_, entry)| entry)
+                    .collect();
+                options.sort_unstable_by(|a, b| {
+                    b.frequency
+                        .cmp(&a.frequency)
+                        .then_with(|| a.text.cmp(&b.text))
+                });
+                options
+                    .into_iter()
+                    .take(12)
+                    .map(|entry| entry.text.as_str())
+                    .collect()
+            })
+            .collect();
+        crate::NeuralPredictor::phonetic_paths(previous, &readings)
+            .into_iter()
+            .map(|(score, text)| {
+                Candidate::new(text, raw.len(), score, CandidateSource::PhoneticModel)
+                    .with_mode(InputMode::Zhuyin)
+                    .with_annotation(zhuyin::display(raw))
+            })
+            .collect()
+    }
+
     fn context_score(&self, previous: Option<&str>, text: &str, next: Option<&str>) -> f64 {
         let left = self.data.language_model.score(previous, text);
         let right = next

@@ -36,6 +36,10 @@ pub trait Predictor: Send {
         None
     }
 
+    fn phonetic_paths(&self, _raw: &str, _previous: Option<&str>) -> Vec<Candidate> {
+        Vec::new()
+    }
+
     /// Suggestions that may consult bounded host context beyond the last word.
     fn suggest_context(
         &self,
