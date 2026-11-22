@@ -10,6 +10,11 @@
 | 帶聲調注音讀音 | 109923 |
 | 拼音讀音（去除聲調後再去重） | 105982 |
 
+上表為原始合併詞庫。Linux 混打及純注音另載入 `zhuyin_corpus.tsv` 與 `zhuyin_terms.tsv`。
+`zhuyin_corpus.tsv` 由 `scripts/build_zhuyin_corpus_words.py` 從 Chinese-GSD r2.15 train 取出 428 個新詞。
+詞形須至少出現兩次，且依現有詞庫拆分後只有一套讀音。來源與衍生 TSV 採 CC BY-SA 4.0。
+`zhuyin_terms.tsv` 收錄人工校對的「數據集」及「並讓」，詞頻是編輯權重。
+
 同一詞的異讀不重複計入詞語規模；純中文數字串不納入匯入詞語。
 實際統計、輸出與來源 SHA-256 存於 `lexicon_manifest.json`。
 

@@ -67,8 +67,13 @@ impl Default for ZhuyinPredictor {
         static DEFAULT: OnceLock<ZhuyinPredictor> = OnceLock::new();
         DEFAULT
             .get_or_init(|| {
-                Self::parse(&[crate::data::ZHUYIN_SEED, crate::data::ZHUYIN_EXTRA])
-                    .expect("embedded Zhuyin dictionary is validated by tests")
+                Self::parse(&[
+                    crate::data::ZHUYIN_SEED,
+                    crate::data::ZHUYIN_EXTRA,
+                    include_str!("../data/zhuyin_corpus.tsv"),
+                    include_str!("../data/zhuyin_terms.tsv"),
+                ])
+                .expect("embedded Zhuyin dictionary is validated by tests")
             })
             .clone()
     }

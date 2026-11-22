@@ -969,6 +969,37 @@ fn following_context_changes_ranking_without_changing_the_replacement_span() {
 }
 
 #[test]
+fn expanded_corpus_preserves_dataset_and_conjunction_readings() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut model = senti_core::UserModel::default();
+    for _ in 0..20 {
+        model.record_word(InputMode::Zhuyin, "gj4rm4ru6", "數據及");
+        model.record_word(InputMode::Zhuyin, "1j4cjo4", "不賄");
+    }
+    std::fs::write(
+        directory.path().join("user_model.json"),
+        serde_json::to_vec(&model).unwrap(),
+    )
+    .unwrap();
+    let mut client = Client::new(AppOptions::ephemeral().with_data_dir(directory.path()));
+    client.focus("editor", false);
+    for (raw, expected) in [
+        ("gj4rm4ru6", "數據集"),
+        ("gj4rm4ru6fu6zp vu ", "數據及其分析"),
+        ("1j4cjo4", "不會"),
+        ("1u/4b;4", "並讓"),
+    ] {
+        let view = client.type_text("editor", raw).view.unwrap();
+        assert_eq!(view.converted_preedit, expected);
+        assert!(!view.selecting);
+        assert_eq!(
+            client.key("editor", PlatformKey::Enter).commit.as_deref(),
+            Some(expected)
+        );
+    }
+}
+
+#[test]
 fn right_hand_text_disambiguates_the_current_word_without_committing_the_neighbours() {
     let mut client = Client::new(AppOptions::ephemeral());
     client.focus("editor", false);
