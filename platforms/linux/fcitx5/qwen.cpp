@@ -142,14 +142,26 @@ int main(int argc, char **argv) {
   ggml_backend_load_all_from_path(argv[2]);
   llama_backend_init();
   auto modelParams = llama_model_default_params();
-  modelParams.n_gpu_layers = argc == 4 && std::string_view(argv[3]) == "cpu" ? 0 : -1;
+  const bool cpu = argc == 4 && std::string_view(argv[3]) == "cpu";
+  modelParams.n_gpu_layers = cpu ? 0 : -1;
+  const auto defaultLoadMode = modelParams.load_mode;
+  if (!cpu && ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_GPU)) {
+    // Upload the weights without retaining the GGUF mapping on the host.
+    modelParams.load_mode = LLAMA_LOAD_MODE_NONE;
+  }
   std::unique_ptr<llama_model, decltype(&llama_model_free)> model(
       llama_model_load_from_file(argv[1], modelParams), llama_model_free);
+  if (!model && modelParams.load_mode != defaultLoadMode) {
+    modelParams.load_mode = defaultLoadMode;
+    model.reset(llama_model_load_from_file(argv[1], modelParams));
+  }
   if (!model)
     return 1;
 
   auto params = llama_context_default_params();
-  params.n_ctx = 768;
+  // Each request clears the unified KV cache. Its shared prefix and all
+  // candidate paths already fit within one batch.
+  params.n_ctx = batchSize;
   params.n_batch = batchSize;
   params.n_ubatch = batchSize;
   params.n_outputs_max = 64;

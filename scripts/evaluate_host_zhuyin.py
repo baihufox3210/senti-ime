@@ -2,6 +2,7 @@
 """Compare complete previews on adjacent UD Chinese-GSD test characters."""
 import argparse
 from collections import defaultdict
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -55,6 +56,7 @@ def evaluate(binary, sample, directory, d512=None):
     if d512 is not None:
         env['SENTI_IME_D512_MODEL'] = str(d512.resolve())
     correct = visible = character_errors = preview_commit_mismatches = 0
+    output_hash = hashlib.sha256()
     # The native host discovers optional model folders beside its executable.
     isolated = shutil.copy2(binary, directory / 'senti-host')
     with subprocess.Popen([str(isolated), '--ephemeral'], env=env,
@@ -91,6 +93,7 @@ def evaluate(binary, sample, directory, d512=None):
             character_errors += edit_distance(expected, preview)
             send({'type': 'key', 'context': context, 'key': {'name': 'home'}})
             view = send({'type': 'key', 'context': context, 'key': {'name': 'down'}})['view']
+            output_hash.update(json.dumps([preview, view['candidates']], sort_keys=True).encode())
             visible += preview_matches or any(
                 not entry['partial'] and prefix + entry['text'] == expected
                 for entry in view['candidates']
@@ -109,6 +112,7 @@ def evaluate(binary, sample, directory, d512=None):
         "character_errors": character_errors,
         "reference_characters": sum(len(expected) for _, _, expected in sample),
         "preview_commit_mismatches": preview_commit_mismatches,
+        "preview_and_candidates_sha256": output_hash.hexdigest(),
     }
 
 
