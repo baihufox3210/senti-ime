@@ -7,6 +7,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::tsv::{LexiconError, records};
+use crate::zhuyin_ngrams::{CharacterModel, History};
 
 #[derive(Debug, Clone)]
 struct Entry {
@@ -308,11 +309,21 @@ impl Predictor for ZhuyinPredictor {
         if syllables.is_empty() {
             return Vec::new();
         }
+        let character_model = CharacterModel::shared();
+        let history = History::from_text(query.previous);
+        let complete = syllables.iter().all(|syllable| syllable.tone.is_some());
         let mut candidates = Vec::new();
         for (_, entry) in self.matches_at(&syllables) {
             let n = entry.syllables.len();
             let consumed = syllables[n - 1].end;
             let full = n == syllables.len();
+            // The written corpus does not distinguish standalone neutral-tone
+            // particles from neutral syllables inside a reduplicated word.
+            let corpus_score = if full && complete && (n > 1 || syllables[0].tone != Some(5)) {
+                0.06 * character_model.score(history, &entry.text).1 / n as f64
+            } else {
+                0.0
+            };
             let score = 0.035
                 * self
                     .data
@@ -321,7 +332,8 @@ impl Predictor for ZhuyinPredictor {
                     .clamp(-2.0, 2.0)
                 + 0.5 * n as f64 / syllables.len() as f64
                 + 0.4 * self.weight(entry)
-                + if full { 0.6 } else { 0.0 };
+                + if full { 0.6 } else { 0.0 }
+                + corpus_score;
             candidates.push(
                 Candidate::new(&entry.text, consumed, score, CandidateSource::Lexicon)
                     .with_tags(entry.tags.iter().copied())
@@ -334,6 +346,7 @@ impl Predictor for ZhuyinPredictor {
         #[derive(Clone)]
         struct Path {
             log_probability: f64,
+            history: History,
             text: String,
             weight: f64,
             words: usize,
@@ -342,29 +355,45 @@ impl Predictor for ZhuyinPredictor {
         let mut beams: Vec<Vec<Path>> = vec![Vec::new(); n + 1];
         beams[0].push(Path {
             log_probability: 0.0,
+            history,
             text: String::new(),
             weight: 0.0,
             words: 0,
         });
         for i in 0..if n > 1 { n } else { 0 } {
-            for path in beams[i].clone() {
-                for (_, entry) in self.matches_at(&syllables[i..]) {
+            let edges: Vec<_> = self.matches_at(&syllables[i..]).collect();
+            for path in std::mem::take(&mut beams[i]) {
+                for &(_, entry) in &edges {
                     let j = i + entry.syllables.len();
                     let previous = if path.text.is_empty() {
                         query.previous
                     } else {
                         Some(path.text.as_str())
                     };
+                    let (history, language_score) = if complete {
+                        character_model.score(path.history, &entry.text)
+                    } else {
+                        (path.history, 0.0)
+                    };
                     let log_probability = path.log_probability
                         + ((f64::from(entry.frequency) + 1.0) / self.data.total_frequency).ln()
+                        + (if n <= 2 { 0.45 } else { 0.10 }) * language_score
                         + 0.45 * self.data.language_model.score(previous, &entry.text);
+                    let beam = &mut beams[j];
+                    if beam.len() == 6
+                        && beam
+                            .last()
+                            .is_some_and(|last| last.log_probability > log_probability)
+                    {
+                        continue;
+                    }
                     let next = Path {
                         log_probability,
+                        history,
                         text: format!("{}{}", path.text, entry.text),
                         weight: path.weight + self.weight(entry),
                         words: path.words + 1,
                     };
-                    let beam = &mut beams[j];
                     if let Some(old) = beam.iter_mut().find(|old| old.text == next.text) {
                         if old.log_probability < next.log_probability {
                             *old = next;

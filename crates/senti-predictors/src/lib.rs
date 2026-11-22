@@ -48,4 +48,5 @@ pub(crate) fn log_weight(freq: u32, max_freq: u32) -> f64 {
 }
 
 mod zhuyin;
+mod zhuyin_ngrams;
 pub use zhuyin::ZhuyinPredictor;

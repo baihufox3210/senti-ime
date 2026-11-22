@@ -109,3 +109,12 @@ python3 scripts/import_mcbopomofo.py --source-dir /path/to/upstream --properties
 這兩項新增資料依本專案 MIT 授權。
 
 英文可數名詞補充檔 `english_count_nouns.txt` 來自 repo 內 v2 模型的 Tatoeba CC0 英文語料。單數取 `a/an` 後的小寫字，規則複數取數詞 `two/three/four/five` 後的字，僅保留單複數都經語料見證且都在 v2 詞彙表的配對。檔案收錄 121 組，不含外部字典全文。
+
+## 注音字元統計模型
+
+`zhuyin_ngrams.bin` 由 SentiIME 的 `scripts/train_zhuyin_ngrams.py` 對
+[UD Chinese-GSD r2.15 訓練集](https://github.com/UniversalDependencies/UD_Chinese-GSD/tree/r2.15)
+重新統計。資料與衍生統計表採 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)。
+樹庫作者名單與授權原文收錄在 `models/tiny-ime-v2/licenses/`。
+統計表不包含 dev、test 或個人資料，SHA-256 為
+`ee948ae4958b6be95049de55e43f2d4fc1a6591b3f87ec06f6925282a1acbbef`。
