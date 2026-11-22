@@ -335,7 +335,7 @@ impl InputEngine {
             .ports
             .predictors
             .iter()
-            .flat_map(|predictor| predictor.phonetic_paths(&raw, Some(&previous)))
+            .flat_map(|predictor| predictor.phonetic_paths(&raw, Some(&previous), "", ""))
             .filter(|candidate| candidate.consumed == raw.len())
             .collect();
         if let Some(window) = self
@@ -344,12 +344,14 @@ impl InputEngine {
             .and_then(|editor| editor.phonetic_window())
         {
             let before = format!("{}{}", self.surrounding, window.before);
-            for candidate in self
-                .ports
-                .predictors
-                .iter()
-                .flat_map(|predictor| predictor.phonetic_paths(&window.raw, Some(&before)))
-            {
+            for candidate in self.ports.predictors.iter().flat_map(|predictor| {
+                predictor.phonetic_paths(
+                    &window.raw,
+                    Some(&before),
+                    &window.left_anchor,
+                    &window.right_anchor,
+                )
+            }) {
                 if let Some(text) = candidate
                     .text
                     .strip_prefix(&window.left_anchor)
@@ -403,6 +405,22 @@ impl InputEngine {
         }
         sort_by_score(&mut alternatives);
         self.candidates.extend(alternatives.into_iter().take(6));
+        let mut repairs: Vec<_> = self
+            .ports
+            .predictors
+            .iter()
+            .flat_map(|predictor| predictor.phonetic_tone_repairs(&raw, Some(&previous)))
+            .collect();
+        for candidate in &mut repairs {
+            candidate.score += self.right_context_score(&candidate.text, &following);
+        }
+        sort_by_score(&mut repairs);
+        self.candidates.extend(
+            repairs
+                .into_iter()
+                .filter(|candidate| seen.insert((candidate.text.clone(), raw.len())))
+                .take(4),
+        );
         for reading in senti_core::zhuyin::alternate_final_tones(&raw) {
             if let Some(mut candidate) = self
                 .collect_for_mode(InputMode::Zhuyin, &reading)

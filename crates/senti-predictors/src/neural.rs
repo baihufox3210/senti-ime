@@ -342,23 +342,23 @@ impl NeuralPredictor {
             for (index, (score, _, history)) in paths.iter().enumerate() {
                 let (hidden, _) = model.forward(history);
                 for &text in characters {
-                    let Some(&id) = model.ids.get(text) else {
-                        continue;
-                    };
-                    expanded.push((score + f64::from(model.logit(&hidden, id)), index, id));
+                    let id = model.ids.get(text).copied().unwrap_or(1);
+                    let logit = model.logit(&hidden, id) - if id == 1 { 10.0 } else { 0.0 };
+                    expanded.push((score + f64::from(logit), index, id, text));
                 }
             }
             expanded.sort_unstable_by(|a, b| {
                 b.0.total_cmp(&a.0)
                     .then_with(|| (a.1, a.2).cmp(&(b.1, b.2)))
+                    .then_with(|| a.3.cmp(b.3))
             });
             paths = expanded
                 .into_iter()
                 .take(4)
-                .map(|(score, index, id)| {
+                .map(|(score, index, id, character)| {
                     let (_, prefix, history) = &paths[index];
                     let mut text = prefix.clone();
-                    text.push_str(&model.tokens[id]);
+                    text.push_str(character);
                     let mut history = history.clone();
                     history.push(id);
                     (score, text, history)

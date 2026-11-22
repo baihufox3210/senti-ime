@@ -306,20 +306,44 @@ impl Predictor for ZhuyinPredictor {
         best.text.strip_prefix(displayed).map(str::to_owned)
     }
 
-    fn phonetic_paths(&self, raw: &str, previous: Option<&str>) -> Vec<Candidate> {
+    fn phonetic_paths(
+        &self,
+        raw: &str,
+        previous: Option<&str>,
+        left: &str,
+        right: &str,
+    ) -> Vec<Candidate> {
         let Some(syllables) = zhuyin::parse_tolerant(raw).filter(|syllables| {
             (2..=8).contains(&syllables.len())
                 && syllables.iter().all(|syllable| syllable.tone.is_some())
         }) else {
             return Vec::new();
         };
+        let left: Vec<_> = left.chars().collect();
+        let right: Vec<_> = right.chars().collect();
+        if left.len() + right.len() >= syllables.len() {
+            return Vec::new();
+        }
+        let right_start = syllables.len() - right.len();
         let readings: Vec<Vec<_>> = syllables
             .iter()
-            .map(|syllable| {
+            .enumerate()
+            .map(|(index, syllable)| {
                 let mut options: Vec<_> = self
                     .matches_at(std::slice::from_ref(syllable))
                     .map(|(_, entry)| entry)
                     .collect();
+                if let Some(&anchor) = left.get(index).or_else(|| {
+                    index
+                        .checked_sub(right_start)
+                        .and_then(|index| right.get(index))
+                }) {
+                    return options
+                        .into_iter()
+                        .filter(|entry| entry.text.starts_with(anchor))
+                        .map(|entry| entry.text.as_str())
+                        .collect();
+                }
                 options.sort_unstable_by(|a, b| {
                     b.frequency
                         .cmp(&a.frequency)
@@ -340,6 +364,40 @@ impl Predictor for ZhuyinPredictor {
                     .with_annotation(zhuyin::display(raw))
             })
             .collect()
+    }
+
+    fn phonetic_tone_repairs(&self, raw: &str, previous: Option<&str>) -> Vec<Candidate> {
+        let Some(mut syllables) = zhuyin::parse_tolerant(raw).filter(|syllables| {
+            (2..=6).contains(&syllables.len())
+                && syllables.iter().all(|syllable| syllable.tone.is_some())
+        }) else {
+            return Vec::new();
+        };
+        let length = syllables.len();
+        let mut repairs = Vec::new();
+        for index in 0..length - 1 {
+            let original = syllables[index].tone;
+            for tone in 1..=5 {
+                if Some(tone) == original {
+                    continue;
+                }
+                syllables[index].tone = Some(tone);
+                for (_, entry) in self
+                    .matches_at(&syllables)
+                    .filter(|(_, entry)| entry.syllable_count == length)
+                {
+                    let score = self.weight(entry)
+                        + 0.12 * crate::NeuralPredictor::sequence_score(previous, &entry.text);
+                    repairs.push(
+                        Candidate::new(&entry.text, raw.len(), score, CandidateSource::NearReading)
+                            .with_mode(InputMode::Zhuyin)
+                            .with_annotation(zhuyin::display(&entry.code)),
+                    );
+                }
+            }
+            syllables[index].tone = original;
+        }
+        repairs
     }
 
     fn context_score(&self, previous: Option<&str>, text: &str, next: Option<&str>) -> f64 {

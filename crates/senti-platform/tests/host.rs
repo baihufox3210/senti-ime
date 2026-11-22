@@ -969,6 +969,57 @@ fn following_context_changes_ranking_without_changing_the_replacement_span() {
 }
 
 #[test]
+fn earlier_tone_repair_is_explicit_and_keeps_the_original_keys() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    let raw = "5j3u4";
+    let draft = client.type_text("editor", raw).view.unwrap();
+    assert_eq!(draft.converted_preedit, "主義");
+    assert!(draft.candidates.iter().all(|entry| entry.text != "注意"));
+    let mut view = client
+        .modified(
+            "editor",
+            PlatformKey::Down,
+            Modifiers {
+                shift: true,
+                ..Modifiers::default()
+            },
+            false,
+        )
+        .view
+        .unwrap();
+    let label = loop {
+        if let Some(candidate) = view
+            .candidates
+            .iter()
+            .find(|entry| entry.text == "注意" && entry.source == "near_reading")
+        {
+            break candidate.label;
+        }
+        assert!(
+            view.page + 1 < view.page_count,
+            "missing earlier tone repair"
+        );
+        view = client.key("editor", PlatformKey::PageDown).view.unwrap();
+    };
+    let selected = client
+        .send(Command::Select {
+            context: "editor".into(),
+            label,
+        })
+        .view
+        .unwrap();
+    assert_eq!(selected.converted_preedit, "注意");
+    assert_eq!(
+        client
+            .key("editor", PlatformKey::CommitRaw)
+            .commit
+            .as_deref(),
+        Some(raw)
+    );
+}
+
+#[test]
 fn phonetic_paths_require_explicit_selection_and_keep_the_neighbouring_word() {
     let mut client = Client::new(AppOptions::ephemeral());
     client.focus("editor", false);

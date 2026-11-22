@@ -36,7 +36,18 @@ pub trait Predictor: Send {
         None
     }
 
-    fn phonetic_paths(&self, _raw: &str, _previous: Option<&str>) -> Vec<Candidate> {
+    fn phonetic_paths(
+        &self,
+        _raw: &str,
+        _previous: Option<&str>,
+        _left: &str,
+        _right: &str,
+    ) -> Vec<Candidate> {
+        Vec::new()
+    }
+
+    /// Dictionary-backed repairs for one earlier tone in a selected word.
+    fn phonetic_tone_repairs(&self, _raw: &str, _previous: Option<&str>) -> Vec<Candidate> {
         Vec::new()
     }
 
