@@ -105,6 +105,8 @@ install(DIRECTORY ../../../crates/senti-predictors/data/licenses/ DESTINATION "$
 install(DIRECTORY ../../../models/tiny-ime-v2/licenses/ DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/senti-ime/neural-v2")
 install(FILES ../../../models/tiny-ime-v2/README.md ../../../models/tiny-ime-v2/training-report.json
     ../../../models/tiny-ime-v2/full-vocabulary-evaluation.json DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/senti-ime/neural-v2")
+install(FILES ../../../models/tiny-ime-v2/zhuyin-finetuned/training-report.json
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/senti-ime/neural-v2" RENAME zhuyin-finetune-report.json)
 if(BUILD_TESTING)
     add_executable(senti-bad-host tests/bad-host.cpp)
     target_compile_features(senti-bad-host PRIVATE cxx_std_20)

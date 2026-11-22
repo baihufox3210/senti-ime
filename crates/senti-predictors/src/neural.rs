@@ -85,7 +85,7 @@ impl Model {
         MODEL.get_or_init(Self::load)
     }
     fn load() -> Self {
-        let bytes = include_bytes!("../../../models/tiny-ime-v2/model.bin");
+        let bytes = include_bytes!("../../../models/tiny-ime-v2/zhuyin-finetuned/model.bin");
         assert_eq!(&bytes[..8], b"SENTINN1");
         let dims: Vec<usize> = bytes[8..32]
             .chunks_exact(4)
