@@ -3,10 +3,26 @@ pub const KEYS: &str = "1qaz2wsxedcrfv5tgbyhnujm8ik,9ol.0p;/-";
 pub const SYMBOLS: &str =
     "ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄧㄨㄩㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦ";
 
+const KEY_SYMBOLS: [Option<char>; 128] = {
+    let keys = KEYS.as_bytes();
+    let symbols = SYMBOLS.as_bytes();
+    let mut table = [None; 128];
+    let mut index = 0;
+    assert!(symbols.len() == keys.len() * 3);
+    while index < keys.len() {
+        let offset = index * 3;
+        // The Zhuyin alphabet uses three-byte UTF-8 code points.
+        let code_point = ((symbols[offset] as u32 & 0x0f) << 12)
+            | ((symbols[offset + 1] as u32 & 0x3f) << 6)
+            | (symbols[offset + 2] as u32 & 0x3f);
+        table[keys[index] as usize] = char::from_u32(code_point);
+        index += 1;
+    }
+    table
+};
+
 pub fn symbol(key: char) -> Option<char> {
-    KEYS.chars()
-        .position(|k| k == key)
-        .and_then(|i| SYMBOLS.chars().nth(i))
+    KEY_SYMBOLS.get(key as usize).copied().flatten()
 }
 
 pub fn tone(key: char) -> Option<u8> {

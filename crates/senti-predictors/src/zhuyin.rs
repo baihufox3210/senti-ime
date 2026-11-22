@@ -12,10 +12,38 @@ use crate::zhuyin_ngrams::{CharacterModel, History};
 #[derive(Debug, Clone)]
 struct Entry {
     code: String,
-    syllables: Vec<Syllable>,
+    syllable_count: usize,
     text: String,
     frequency: u32,
     tags: Vec<Tag>,
+}
+
+impl Entry {
+    fn reading(&self) -> impl Iterator<Item = (&str, u8)> {
+        self.code
+            .split_inclusive(|key| zhuyin::tone(key).is_some())
+            .map(|part| {
+                let (keys, mark) = part.split_at(part.len() - 1);
+                (keys, zhuyin::tone(char::from(mark.as_bytes()[0])).unwrap())
+            })
+    }
+
+    fn matches_prefix(&self, syllables: &[Syllable]) -> bool {
+        self.reading().zip(syllables).all(|((keys, tone), typed)| {
+            if let Some(mark) = typed.tone {
+                keys == typed.keys && tone == mark
+            } else {
+                keys.starts_with(&typed.keys)
+            }
+        })
+    }
+}
+
+fn index_key(keys: &str, tone: Option<u8>) -> u32 {
+    let mut bytes = [0; 4];
+    bytes[..keys.len()].copy_from_slice(keys.as_bytes());
+    bytes[3] = tone.unwrap_or_default();
+    u32::from_le_bytes(bytes)
 }
 
 #[derive(Debug, Clone)]
@@ -25,7 +53,7 @@ pub struct ZhuyinPredictor {
 #[derive(Debug)]
 struct Lexicon {
     entries: Vec<Entry>,
-    by_prefix: HashMap<(String, usize), Vec<usize>>,
+    by_prefix: HashMap<(u32, usize), Vec<u32>>,
     max_frequency: u32,
     total_frequency: f64,
     language_model: crate::language_model::LanguageModel,
@@ -51,7 +79,7 @@ impl ZhuyinPredictor {
     /// Duplicate (code, text) pairs retain their highest frequency and tags.
     pub fn parse(sources: &[&str]) -> Result<Self, LexiconError> {
         let mut entries: Vec<Entry> = Vec::new();
-        let mut seen: HashMap<(String, String), usize> = HashMap::new();
+        let mut seen: HashMap<(&str, &str), usize> = HashMap::new();
         for source in sources {
             for record in records(source) {
                 let code = record.fields.first().copied().unwrap_or_default();
@@ -74,7 +102,7 @@ impl ZhuyinPredictor {
                     return Err(LexiconError::new(record.line, "frequency must be positive"));
                 }
                 let tags = record.tags(3)?;
-                let key = (code.to_owned(), text.to_owned());
+                let key = (code, text);
                 if let Some(&index) = seen.get(&key) {
                     let existing = &mut entries[index];
                     existing.frequency = existing.frequency.max(frequency);
@@ -87,7 +115,7 @@ impl ZhuyinPredictor {
                     seen.insert(key, entries.len());
                     entries.push(Entry {
                         code: code.to_owned(),
-                        syllables,
+                        syllable_count: syllables.len(),
                         text: text.to_owned(),
                         frequency,
                         tags,
@@ -95,20 +123,19 @@ impl ZhuyinPredictor {
                 }
             }
         }
-        let mut by_prefix: HashMap<(String, usize), Vec<usize>> = HashMap::new();
+        drop(seen);
+        let mut by_prefix: HashMap<(u32, usize), Vec<u32>> = HashMap::new();
         for (index, entry) in entries.iter().enumerate() {
-            let keys = &entry.syllables[0].keys;
+            let index = u32::try_from(index).expect("Zhuyin entry index exceeds u32");
+            let (keys, tone) = entry.reading().next().unwrap();
             for length in 1..=keys.len() {
                 by_prefix
-                    .entry((keys[..length].to_owned(), entry.syllables.len()))
+                    .entry((index_key(&keys[..length], None), entry.syllable_count))
                     .or_default()
                     .push(index);
             }
             by_prefix
-                .entry((
-                    entry.code[..entry.syllables[0].end].to_owned(),
-                    entry.syllables.len(),
-                ))
+                .entry((index_key(keys, Some(tone)), entry.syllable_count))
                 .or_default()
                 .push(index);
         }
@@ -131,44 +158,24 @@ impl ZhuyinPredictor {
         &'a self,
         syllables: &'a [Syllable],
     ) -> impl Iterator<Item = (usize, &'a Entry)> {
-        let prefix = syllables.first().map_or(String::new(), |s| {
-            if let Some(tone) = s.tone {
-                format!(
-                    "{}{}",
-                    s.keys,
-                    match tone {
-                        1 => ' ',
-                        2 => '6',
-                        3 => '3',
-                        4 => '4',
-                        _ => '7',
-                    }
-                )
-            } else {
-                s.keys.clone()
-            }
-        });
+        let prefix = syllables
+            .first()
+            .map(|s| index_key(&s.keys, s.tone))
+            .unwrap_or_default();
         (1..=syllables.len())
             .flat_map(move |length| {
                 self.data
                     .by_prefix
-                    .get(&(prefix.clone(), length))
+                    .get(&(prefix, length))
                     .into_iter()
                     .flatten()
             })
-            .map(|&index| (index, &self.data.entries[index]))
+            .map(|&id| (id as usize, &self.data.entries[id as usize]))
             .filter(move |(_, entry)| Self::matches(entry, syllables))
     }
 
     fn matches(entry: &Entry, syllables: &[Syllable]) -> bool {
-        entry.syllables.len() <= syllables.len()
-            && entry.syllables.iter().zip(syllables).all(|(known, typed)| {
-                if let Some(tone) = typed.tone {
-                    known.keys == typed.keys && known.tone == Some(tone)
-                } else {
-                    known.keys.starts_with(&typed.keys)
-                }
-            })
+        entry.syllable_count <= syllables.len() && entry.matches_prefix(syllables)
     }
 
     /// In a degree-complement position, consider a strongly attested two-character
@@ -200,23 +207,25 @@ impl ZhuyinPredictor {
         let exact_word: String = chars[split..].iter().collect();
         let exact_frequency = self
             .matches_at(typed)
-            .filter(|(_, entry)| entry.syllables.len() == 2)
+            .filter(|(_, entry)| entry.syllable_count == 2)
             .map(|(_, entry)| entry.frequency)
             .max()
             .unwrap_or(1);
-        let entries = self.data.by_prefix.get(&(typed[0].keys.clone(), 2))?;
+        let entries = self
+            .data
+            .by_prefix
+            .get(&(index_key(&typed[0].keys, None), 2))?;
         let entry = entries
             .iter()
-            .map(|&id| &self.data.entries[id])
+            .map(|&id| &self.data.entries[id as usize])
             .filter(|e| {
                 e.text != exact_word
                     && e.frequency >= 100
                     && e.frequency >= exact_frequency.saturating_mul(8)
-                    && e.syllables.iter().zip(typed).all(|(a, b)| a.keys == b.keys)
-                    && e.syllables
-                        .iter()
+                    && e.reading().zip(typed).all(|((keys, _), b)| keys == b.keys)
+                    && e.reading()
                         .zip(typed)
-                        .filter(|(a, b)| a.tone != b.tone)
+                        .filter(|((_, tone), b)| Some(*tone) != b.tone)
                         .count()
                         == 1
             })
@@ -245,35 +254,14 @@ impl Predictor for ZhuyinPredictor {
             return false;
         };
         let first = &syllables[0];
-        let mut prefix = first.keys.clone();
-        if let Some(tone) = first.tone {
-            prefix.push(match tone {
-                1 => ' ',
-                2 => '6',
-                3 => '3',
-                4 => '4',
-                _ => '7',
-            });
-        }
+        let prefix = index_key(&first.keys, first.tone);
         (syllables.len() + 1..=max_syllables).any(|length| {
             self.data
                 .by_prefix
-                .get(&(prefix.clone(), length))
+                .get(&(prefix, length))
                 .into_iter()
                 .flatten()
-                .any(|&index| {
-                    self.data.entries[index]
-                        .syllables
-                        .iter()
-                        .zip(&syllables)
-                        .all(|(known, typed)| {
-                            if let Some(tone) = typed.tone {
-                                known.keys == typed.keys && known.tone == Some(tone)
-                            } else {
-                                known.keys.starts_with(&typed.keys)
-                            }
-                        })
-                })
+                .any(|&index| self.data.entries[index as usize].matches_prefix(&syllables))
         })
     }
 
@@ -314,7 +302,7 @@ impl Predictor for ZhuyinPredictor {
         let complete = syllables.iter().all(|syllable| syllable.tone.is_some());
         let mut candidates = Vec::new();
         for (_, entry) in self.matches_at(&syllables) {
-            let n = entry.syllables.len();
+            let n = entry.syllable_count;
             let consumed = syllables[n - 1].end;
             let full = n == syllables.len();
             // The written corpus does not distinguish standalone neutral-tone
@@ -364,7 +352,7 @@ impl Predictor for ZhuyinPredictor {
             let edges: Vec<_> = self.matches_at(&syllables[i..]).collect();
             for path in std::mem::take(&mut beams[i]) {
                 for &(_, entry) in &edges {
-                    let j = i + entry.syllables.len();
+                    let j = i + entry.syllable_count;
                     let previous = if path.text.is_empty() {
                         query.previous
                     } else {
@@ -555,12 +543,12 @@ mod tests {
         assert!(predictor.data.entries.len() >= 2000);
         for entry in &predictor.data.entries {
             assert_eq!(
-                entry.syllables.len(),
+                entry.syllable_count,
                 entry.text.chars().count(),
                 "{}",
                 entry.text
             );
-            assert!(entry.syllables.iter().all(|s| s.tone.is_some()));
+            assert!(entry.reading().count() == entry.syllable_count);
         }
     }
 
@@ -613,7 +601,7 @@ mod tests {
             .data
             .entries
             .iter()
-            .filter(|entry| entry.syllables.len() > 1)
+            .filter(|entry| entry.syllable_count > 1)
         {
             let candidates = predictor.predict(&PredictionQuery {
                 input: &entry.code,
@@ -666,7 +654,7 @@ mod tests {
         let predictor = ZhuyinPredictor::default();
         let mut groups: HashMap<&str, HashSet<&str>> = HashMap::new();
         for entry in &predictor.data.entries {
-            if entry.syllables.len() >= 2 {
+            if entry.syllable_count >= 2 {
                 groups.entry(&entry.code).or_default().insert(&entry.text);
             }
         }
