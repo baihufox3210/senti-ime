@@ -168,6 +168,15 @@ int main(int argc, char **argv) {
         type(engine, defaultEntry, initial, "cl3");
         check(initial.inputPanel().clientPreedit().toString() == "你好",
               "Shift interrupted mixed composition");
+        key(engine, defaultEntry, initial, FcitxKey_Escape);
+        type(engine, defaultEntry, initial, "g4ru,4su3cl3");
+        key(engine, defaultEntry, initial, FcitxKey_Down,
+            fcitx::KeyState::Shift);
+        check(initial.inputPanel().candidateList() &&
+                  initial.inputPanel().clientPreedit().cursor() ==
+                      static_cast<int>(std::string("世界").size()) &&
+                  initial.inputPanel().clientPreedit().toString() == "世界你好",
+              "Shift+Down did not focus the final word");
         engine->deactivate(defaultEntry, initialFocus);
       }
       {

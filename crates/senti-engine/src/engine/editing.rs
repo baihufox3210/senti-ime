@@ -119,6 +119,65 @@ impl InputEngine {
         }
     }
 
+    /// Open candidates for the last displayed dictionary word in mixed mode.
+    pub fn open_final_chinese_word(&mut self) -> Option<KeyOutcome> {
+        if self.mode != InputMode::Mixed || self.selecting {
+            return None;
+        }
+        let already_editing = self.editor.is_some();
+        if !already_editing {
+            if !self.has_completed_chinese_tail() {
+                return None;
+            }
+            self.start_editor();
+        }
+        let editor = self.editor.as_ref().unwrap();
+        let end = editor.units.len();
+        let start = (editor.cursor == end && editor.typing.is_none())
+            .then(|| {
+                let tail = editor
+                    .units
+                    .iter()
+                    .rev()
+                    .take(6)
+                    .take_while(|unit| {
+                        unit.input_mode == Some(InputMode::Zhuyin)
+                            && !unit.confirmed
+                            && senti_core::zhuyin::parse_tolerant(&unit.raw).is_some_and(
+                                |syllables| syllables.len() == 1 && syllables[0].tone.is_some(),
+                            )
+                    })
+                    .count();
+                (end - tail..end.saturating_sub(1)).find(|&start| {
+                    let raw: String = editor.units[start..end]
+                        .iter()
+                        .map(|unit| unit.raw.as_str())
+                        .collect();
+                    let displayed: String = editor.units[start..end]
+                        .iter()
+                        .map(|unit| unit.text.as_str())
+                        .collect();
+                    self.collect_for_mode(InputMode::Zhuyin, &raw)
+                        .iter()
+                        .any(|candidate| {
+                            candidate.source == CandidateSource::Lexicon
+                                && candidate.consumed == raw.len()
+                                && candidate.text == displayed
+                        })
+                })
+            })
+            .flatten();
+        if let Some(start) = start {
+            self.editor.as_mut().unwrap().cursor = start;
+            self.recompute_candidates();
+            return Some(self.handle_key(KeyEvent::OpenCandidates));
+        }
+        if !already_editing {
+            self.editor = None;
+        }
+        None
+    }
+
     /// Move within uncommitted text, one Chinese character / Latin scalar at a time.
     pub fn move_preedit_cursor(&mut self, right: bool) -> KeyOutcome {
         if self.composition.is_empty() && self.editor.is_none() {

@@ -478,6 +478,11 @@ impl PlatformHost {
                 if view.selecting {
                     KeyEvent::CandidateNext
                 } else {
+                    if modifiers.shift {
+                        if let Some(outcome) = self.engine.open_final_chinese_word() {
+                            return outcome;
+                        }
+                    }
                     KeyEvent::OpenCandidates
                 }
             }

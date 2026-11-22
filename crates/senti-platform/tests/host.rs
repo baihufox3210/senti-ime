@@ -969,6 +969,46 @@ fn following_context_changes_ranking_without_changing_the_replacement_span() {
 }
 
 #[test]
+fn shifted_down_targets_the_last_word_without_changing_earlier_text() {
+    let mut client = Client::new(AppOptions::ephemeral());
+    client.focus("editor", false);
+    let draft = client.type_text("editor", "g4ru,4su3cl3").view.unwrap();
+    assert_eq!(draft.converted_preedit, "世界你好");
+    let candidates = client
+        .modified(
+            "editor",
+            PlatformKey::Down,
+            Modifiers {
+                shift: true,
+                ..Modifiers::default()
+            },
+            false,
+        )
+        .view
+        .unwrap();
+    assert!(candidates.selecting);
+    assert_eq!(candidates.preedit_cursor, "世界".len());
+    let label = candidates
+        .candidates
+        .iter()
+        .find(|candidate| candidate.text == "妳好")
+        .unwrap()
+        .label;
+    let revised = client
+        .send(Command::Select {
+            context: "editor".into(),
+            label,
+        })
+        .view
+        .unwrap();
+    assert_eq!(revised.converted_preedit, "世界妳好");
+    assert_eq!(
+        client.key("editor", PlatformKey::Enter).commit.as_deref(),
+        Some("世界妳好")
+    );
+}
+
+#[test]
 fn chinese_completion_is_explicit_and_wrong_final_tones_are_selectable() {
     let mut client = Client::new(AppOptions::ephemeral());
     client.focus("editor", false);
